@@ -28,7 +28,6 @@ Il progetto affronta il problema dell'8-puzzle implementando e confrontando dive
 |-----------|------|-----------------|-------------|
 | **BFS** | Non informata | Trova soluzione ottimale, alta memoria | O(b^d) spazio |
 | **A\*** | Informata | Ottimale con euristica ammissibile | O(b^d) |
-| **IDA\*** | Informata | Memory-bounded, iterative deepening | O(b^d) tempo, O(d) spazio |
 | **Greedy Best-First** | Informata | Veloce ma non ottimale | O(b^d) |
 
 ### 🧮 Euristiche utilizzate
@@ -48,7 +47,6 @@ Il progetto affronta il problema dell'8-puzzle implementando e confrontando dive
 | `gui/puzzle_gui.py` | Interfaccia grafica interattiva con animazioni e statistiche |
 | `logic/puzzle_logic.py` | Logica di business e interfacciamento Python-Prolog |
 | `test/benchmark.py` | Suite di test per confronto prestazioni algoritmi |
-| `test/generator.py` | Generatore di puzzle con difficoltà variabile |
 | `docs/` | Documentazione tecnica completa in LaTeX |
 
 ---

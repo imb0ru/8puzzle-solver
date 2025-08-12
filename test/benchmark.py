@@ -82,7 +82,6 @@ class PuzzleBenchmark:
                 'astar_manhattan',
                 'astar_misplaced',
                 'astar_linear',
-                'idastar',
                 'bfs',
                 'greedy',
             ]
@@ -403,7 +402,6 @@ class PuzzleBenchmark:
                 # Raccomandazioni
                 f.write("\n### Raccomandazioni\n\n")
                 f.write("- Per soluzioni **ottimali e veloci**: A* con Linear Conflict\n")
-                f.write("- Per **memoria limitata**: IDA*\n")
                 f.write("- Per soluzioni **molto veloci** (non ottimali): Greedy\n")
                 f.write("- Per **completezza garantita**: BFS\n")
 
@@ -433,7 +431,7 @@ def main():
         '--algorithms', '-a',
         nargs='+',
         choices=['astar_manhattan', 'astar_misplaced', 'astar_linear',
-                'idastar', 'bfs', 'greedy', 'all'],
+                'bfs', 'greedy', 'all'],
         default=['all'],
         help='Algoritmi da testare (default: all)'
     )

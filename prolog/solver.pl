@@ -3,24 +3,22 @@
    =========================================================
    
    Implementazione di algoritmi di ricerca per l'8-puzzle:
-   - A* con diverse euristiche (Manhattan, Misplaced, Linear Conflict)
-   - IDA* (Iterative Deepening A*)
+   - A* con diverse euristiche (Manhattan, Misplaced, Linear Conflict, Combined)
    - BFS (Breadth-First Search)
    - Greedy Best-First Search
    
-   Autore: [Il tuo nome]
-   Corso: Ingegneria della Conoscenza
    ========================================================= */
 
 :- module(solver, [
     solve_astar_manhattan/5,
     solve_astar_misplaced/5,
     solve_astar_linear/5,
-    solve_idastar/5,
+    solve_astar_combined/5,
     solve_bfs/5,
     solve_greedy/5,
     generate_random_puzzle/2,
-    is_solvable/1
+    is_solvable/1,
+    cleanup_prolog/0
 ]).
 
 :- use_module('heuristics.pl').
@@ -30,6 +28,20 @@
 :- dynamic soluzione_memorizzata/1.
 :- dynamic nodes_explored/1.
 :- dynamic nodes_frontier/1.
+:- dynamic optimal_cost/1.
+
+% =========================================================
+% CLEANUP E GESTIONE MEMORIA
+% =========================================================
+
+% Pulisce tutti i predicati dinamici e ferma i thread
+cleanup_prolog :-
+    retractall(stato_visitato(_)),
+    retractall(soluzione_memorizzata(_)),
+    retractall(nodes_explored(_)),
+    retractall(nodes_frontier(_)),
+    retractall(optimal_cost(_)),
+    !.
 
 % =========================================================
 % STATO OBIETTIVO E UTILITÀ
@@ -42,8 +54,10 @@ goal_state([1,2,3,4,5,6,7,8,0]).
 init_counters :-
     retractall(nodes_explored(_)),
     retractall(nodes_frontier(_)),
+    retractall(optimal_cost(_)),
     assert(nodes_explored(0)),
-    assert(nodes_frontier(0)).
+    assert(nodes_frontier(0)),
+    assert(optimal_cost(inf)).
 
 % Incrementa nodi esplorati
 increment_explored :-
@@ -55,6 +69,12 @@ increment_explored :-
 update_frontier(Size) :-
     retract(nodes_frontier(_)),
     assert(nodes_frontier(Size)).
+
+% Aggiorna costo ottimale trovato
+update_optimal_cost(Cost) :-
+    retract(optimal_cost(OldCost)),
+    NewCost is min(Cost, OldCost),
+    assert(optimal_cost(NewCost)).
 
 % =========================================================
 % MOVIMENTI E TRANSIZIONI
@@ -114,19 +134,20 @@ solve_astar_manhattan(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     retractall(stato_visitato(_)),
     
     manhattan_distance(Initial, H),
-    astar_search([node(Initial, [Initial], 0, H, H)], [], Path),
+    astar_search([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
+    update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),
     nodes_frontier(NodesFrontier),
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-% Ricerca A* generica
-astar_search([node(State, Path, _, _, _)|_], _, Path) :-
+% Ricerca A* generica con tracking del costo
+astar_search([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
     goal_state(State),
     !.
 
-astar_search([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution) :-
+astar_search([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
     increment_explored,
     successors(State, Successors),
     expand_astar_nodes(Successors, PathSoFar, G, Visited, NewNodes),
@@ -134,7 +155,7 @@ astar_search([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution) :-
     sort_by_f(OpenList, SortedOpen),
     length(SortedOpen, FrontierSize),
     update_frontier(FrontierSize),
-    astar_search(SortedOpen, [State|Visited], Solution).
+    astar_search(SortedOpen, [State|Visited], Solution, FinalCost).
 
 % Espande i nodi per A*
 expand_astar_nodes([], _, _, _, []).
@@ -168,18 +189,19 @@ solve_astar_misplaced(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     retractall(stato_visitato(_)),
     
     misplaced_tiles(Initial, H),
-    astar_search_misplaced([node(Initial, [Initial], 0, H, H)], [], Path),
+    astar_search_misplaced([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
+    update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),
     nodes_frontier(NodesFrontier),
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-astar_search_misplaced([node(State, Path, _, _, _)|_], _, Path) :-
+astar_search_misplaced([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
     goal_state(State),
     !.
 
-astar_search_misplaced([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution) :-
+astar_search_misplaced([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
     increment_explored,
     successors(State, Successors),
     expand_astar_nodes_misplaced(Successors, PathSoFar, G, Visited, NewNodes),
@@ -187,7 +209,7 @@ astar_search_misplaced([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution
     sort_by_f(OpenList, SortedOpen),
     length(SortedOpen, FrontierSize),
     update_frontier(FrontierSize),
-    astar_search_misplaced(SortedOpen, [State|Visited], Solution).
+    astar_search_misplaced(SortedOpen, [State|Visited], Solution, FinalCost).
 
 expand_astar_nodes_misplaced([], _, _, _, []).
 expand_astar_nodes_misplaced([State|States], PathSoFar, G, Visited, Nodes) :-
@@ -213,18 +235,19 @@ solve_astar_linear(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     retractall(stato_visitato(_)),
     
     linear_conflict(Initial, H),
-    astar_search_linear([node(Initial, [Initial], 0, H, H)], [], Path),
+    astar_search_linear([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
+    update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),
     nodes_frontier(NodesFrontier),
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-astar_search_linear([node(State, Path, _, _, _)|_], _, Path) :-
+astar_search_linear([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
     goal_state(State),
     !.
 
-astar_search_linear([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution) :-
+astar_search_linear([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
     increment_explored,
     successors(State, Successors),
     expand_astar_nodes_linear(Successors, PathSoFar, G, Visited, NewNodes),
@@ -232,7 +255,7 @@ astar_search_linear([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution) :
     sort_by_f(OpenList, SortedOpen),
     length(SortedOpen, FrontierSize),
     update_frontier(FrontierSize),
-    astar_search_linear(SortedOpen, [State|Visited], Solution).
+    astar_search_linear(SortedOpen, [State|Visited], Solution, FinalCost).
 
 expand_astar_nodes_linear([], _, _, _, []).
 expand_astar_nodes_linear([State|States], PathSoFar, G, Visited, Nodes) :-
@@ -249,65 +272,49 @@ expand_astar_nodes_linear([State|States], PathSoFar, G, Visited, Nodes) :-
     ).
 
 % =========================================================
-% IDA* (ITERATIVE DEEPENING A*)
+% A* CON EURISTICA COMBINATA
 % =========================================================
 
-solve_idastar(Initial, Path, NodesExplored, NodesFrontier, Time) :-
+solve_astar_combined(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     get_time(StartTime),
     init_counters,
+    retractall(stato_visitato(_)),
     
-    manhattan_distance(Initial, H),
-    idastar_search(Initial, H, Path),
+    combined_heuristic(Initial, H),
+    astar_search_combined([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
+    update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),
     nodes_frontier(NodesFrontier),
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-idastar_search(Initial, Bound, Path) :-
-    idastar_iteration(Initial, [Initial], 0, Bound, Path, NextBound),
-    (   Path \= []
-    ->  true
-    ;   NextBound = inf
-    ->  Path = []
-    ;   idastar_search(Initial, NextBound, Path)
-    ).
-
-idastar_iteration(State, PathSoFar, G, Bound, Path, NextBound) :-
+astar_search_combined([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
     goal_state(State),
-    !,
-    Path = PathSoFar,
-    NextBound = 0.
+    !.
 
-idastar_iteration(State, PathSoFar, G, Bound, Path, NextBound) :-
-    manhattan_distance(State, H),
-    F is G + H,
-    (   F > Bound
-    ->  Path = [],
-        NextBound = F
-    ;   increment_explored,
-        successors(State, Successors),
-        explore_successors_ida(Successors, PathSoFar, G, Bound, Path, NextBound)
-    ).
+astar_search_combined([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
+    increment_explored,
+    successors(State, Successors),
+    expand_astar_nodes_combined(Successors, PathSoFar, G, Visited, NewNodes),
+    append(Rest, NewNodes, OpenList),
+    sort_by_f(OpenList, SortedOpen),
+    length(SortedOpen, FrontierSize),
+    update_frontier(FrontierSize),
+    astar_search_combined(SortedOpen, [State|Visited], Solution, FinalCost).
 
-explore_successors_ida([], _, _, _, [], inf).
-explore_successors_ida([State|States], PathSoFar, G, Bound, Path, NextBound) :-
-    (   member(State, PathSoFar)
-    ->  explore_successors_ida(States, PathSoFar, G, Bound, Path, NextBound)
+expand_astar_nodes_combined([], _, _, _, []).
+expand_astar_nodes_combined([State|States], PathSoFar, G, Visited, Nodes) :-
+    (   member(State, Visited)
+    ->  expand_astar_nodes_combined(States, PathSoFar, G, Visited, Nodes)
+    ;   member(State, PathSoFar)
+    ->  expand_astar_nodes_combined(States, PathSoFar, G, Visited, Nodes)
     ;   NewG is G + 1,
+        combined_heuristic(State, H),
+        F is NewG + H,
         append(PathSoFar, [State], NewPath),
-        idastar_iteration(State, NewPath, NewG, Bound, PathTemp, NBTemp),
-        (   PathTemp \= []
-        ->  Path = PathTemp,
-            NextBound = NBTemp
-        ;   explore_successors_ida(States, PathSoFar, G, Bound, PathRest, NBRest),
-            (   PathRest \= []
-            ->  Path = PathRest,
-                NextBound = NBRest
-            ;   Path = [],
-                NextBound is min(NBTemp, NBRest)
-            )
-        )
+        expand_astar_nodes_combined(States, PathSoFar, G, Visited, RestNodes),
+        Nodes = [node(State, NewPath, NewG, H, F)|RestNodes]
     ).
 
 % =========================================================
@@ -319,19 +326,22 @@ solve_bfs(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     init_counters,
     retractall(stato_visitato(_)),
     
-    bfs_search([[Initial]], Path),
+    bfs_search([[Initial]], Path, FinalCost),
+    update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),
     nodes_frontier(NodesFrontier),
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-bfs_search([Path|_], Path) :-
+bfs_search([Path|_], Path, Cost) :-
     Path = [State|_],
     goal_state(State),
+    length(Path, Len),
+    Cost is Len - 1,
     !.
 
-bfs_search([CurrentPath|RestPaths], Solution) :-
+bfs_search([CurrentPath|RestPaths], Solution, FinalCost) :-
     CurrentPath = [State|_],
     increment_explored,
     successors(State, Successors),
@@ -339,7 +349,7 @@ bfs_search([CurrentPath|RestPaths], Solution) :-
     append(RestPaths, NewPaths, AllPaths),
     length(AllPaths, FrontierSize),
     update_frontier(FrontierSize),
-    bfs_search(AllPaths, Solution).
+    bfs_search(AllPaths, Solution, FinalCost).
 
 expand_bfs_paths([], _, []).
 expand_bfs_paths([State|States], PathSoFar, Paths) :-
@@ -362,18 +372,21 @@ solve_greedy(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     retractall(stato_visitato(_)),
     
     manhattan_distance(Initial, H),
-    greedy_search([node(Initial, [Initial], H)], [], Path),
+    greedy_search([node(Initial, [Initial], H)], [], Path, FinalCost),
+    update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),
     nodes_frontier(NodesFrontier),
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-greedy_search([node(State, Path, _)|_], _, Path) :-
+greedy_search([node(State, Path, _)|_], _, Path, Cost) :-
     goal_state(State),
+    length(Path, Len),
+    Cost is Len - 1,
     !.
 
-greedy_search([node(State, PathSoFar, _)|Rest], Visited, Solution) :-
+greedy_search([node(State, PathSoFar, _)|Rest], Visited, Solution, FinalCost) :-
     increment_explored,
     successors(State, Successors),
     expand_greedy_nodes(Successors, PathSoFar, Visited, NewNodes),
@@ -381,7 +394,7 @@ greedy_search([node(State, PathSoFar, _)|Rest], Visited, Solution) :-
     sort_by_h_greedy(OpenList, SortedOpen),
     length(SortedOpen, FrontierSize),
     update_frontier(FrontierSize),
-    greedy_search(SortedOpen, [State|Visited], Solution).
+    greedy_search(SortedOpen, [State|Visited], Solution, FinalCost).
 
 expand_greedy_nodes([], _, _, []).
 expand_greedy_nodes([State|States], PathSoFar, Visited, Nodes) :-

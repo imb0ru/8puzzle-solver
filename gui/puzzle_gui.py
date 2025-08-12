@@ -104,7 +104,6 @@ class PuzzleGUI:
             ("A* (Manhattan)", "astar_manhattan"),
             ("A* (Misplaced)", "astar_misplaced"),
             ("A* (Linear Conflict)", "astar_linear"),
-            ("IDA*", "idastar"),
             ("BFS", "bfs"),
             ("Greedy Best-First", "greedy")
         ]
@@ -535,7 +534,6 @@ class PuzzleGUI:
         
         ALGORITMI:
         • A*: Ottimale, usa euristiche
-        • IDA*: A* con memoria limitata
         • BFS: Trova soluzione ottimale
         • Greedy: Velocissimo ma non ottimale
         """
@@ -659,7 +657,7 @@ class CompareDialog:
         
         algorithms = [
             'astar_manhattan', 'astar_misplaced', 'astar_linear',
-            'idastar', 'bfs', 'greedy'
+            'bfs', 'greedy'
         ]
         
         self.progress['maximum'] = len(algorithms)

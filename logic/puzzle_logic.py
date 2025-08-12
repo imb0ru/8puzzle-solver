@@ -26,6 +26,7 @@ class PuzzleLogic:
         """
         self.debug = debug
         self.prolog = None
+        self.optimal_solutions = {}  # Cache per soluzioni ottimali
         self._initialize_prolog()
         
     def _initialize_prolog(self):
@@ -53,6 +54,7 @@ class PuzzleLogic:
             self.prolog = Prolog()
             self.prolog.consult(solver_file)
             self.prolog.consult(heuristics_file)
+            
             if self.debug:
                 print("✅ Prolog inizializzato correttamente")
                 
@@ -61,14 +63,17 @@ class PuzzleLogic:
             raise
     
     def cleanup(self):
-        """Pulisce le risorse."""
+        """Pulisce le risorse e previene il warning di Prolog."""
         if self.prolog:
             try:
-                # Retract di tutti i fatti dinamici
-                list(self.prolog.query("retractall(stato_visitato(_))"))
-                list(self.prolog.query("retractall(soluzione_memorizzata(_))"))
+                # Chiama la funzione di cleanup definita in Prolog
+                list(self.prolog.query("cleanup_prolog"))
             except:
                 pass
+    
+    def __del__(self):
+        """Destructor per pulire risorse."""
+        self.cleanup()
     
     def is_solvable(self, state: List[int]) -> bool:
         """
@@ -195,13 +200,14 @@ class PuzzleLogic:
         
         # Converti stato in formato Prolog
         state_str = self._state_to_prolog(initial_state)
+        state_key = str(initial_state)
         
         # Mappa algoritmi a predicati Prolog
         algorithm_map = {
             'astar_manhattan': 'solve_astar_manhattan',
             'astar_misplaced': 'solve_astar_misplaced',
             'astar_linear': 'solve_astar_linear',
-            'idastar': 'solve_idastar',
+            'astar_combined': 'solve_astar_combined',
             'bfs': 'solve_bfs',
             'greedy': 'solve_greedy',
         }
@@ -212,6 +218,7 @@ class PuzzleLogic:
             # Pulisci stati precedenti
             list(self.prolog.query("retractall(stato_visitato(_))"))
             list(self.prolog.query("retractall(soluzione_memorizzata(_))"))
+            list(self.prolog.query("retractall(optimal_cost(_))"))
             
             # Query Prolog
             query = f"{predicate}({state_str}, Path, NodesExplored, NodesFrontier, Time)"
@@ -226,24 +233,47 @@ class PuzzleLogic:
             if solutions:
                 solution = solutions[0]
                 path = self._parse_prolog_path(solution['Path'])
+                path_length = len(path) - 1
+                
+                # Ottieni il costo ottimale trovato dall'algoritmo
+                optimal_cost_result = list(self.prolog.query("optimal_cost(Cost)"))
+                algorithm_cost = optimal_cost_result[0]['Cost'] if optimal_cost_result else path_length
+                
+                # Calcola o recupera la soluzione ottimale per questo stato
+                if state_key not in self.optimal_solutions:
+                    # Usa BFS per trovare la soluzione ottimale (garantita)
+                    bfs_result = self._find_optimal_solution(state_str)
+                    if bfs_result:
+                        self.optimal_solutions[state_key] = bfs_result
+                
+                # Determina se la soluzione trovata è ottimale
+                is_optimal = False
+                optimality_gap = 0
+                
+                if state_key in self.optimal_solutions:
+                    optimal_length = self.optimal_solutions[state_key]
+                    is_optimal = (path_length == optimal_length)
+                    optimality_gap = path_length - optimal_length
+                else:
+                    # Se non riusciamo a trovare l'ottimo, usiamo euristiche
+                    # Gli algoritmi completi e ammissibili sono ottimali
+                    is_optimal = algorithm in ['bfs', 'astar_manhattan', 
+                                             'astar_misplaced', 'astar_linear', 'astar_combined']
                 
                 # Calcola memoria utilizzata (approssimativa)
                 memory = (solution['NodesExplored'] + solution['NodesFrontier']) * 9 * 4
                 
-                # Determina se l'algoritmo è ottimale
-                #todo non cé calcolo sull'oyttimalitá
-                optimal_algorithms = ['astar_manhattan', 'astar_misplaced', 'astar_linear', 
-                                    'idastar', 'bfs']
-                is_optimal = algorithm in optimal_algorithms
-                
                 return {
                     'success': True,
                     'path': path,
+                    'path_length': path_length,
                     'nodes_explored': solution['NodesExplored'],
                     'nodes_frontier': solution['NodesFrontier'],
                     'time': elapsed_time,
                     'memory': memory,
-                    'optimal': is_optimal
+                    'optimal': is_optimal,
+                    'optimality_gap': optimality_gap,
+                    'algorithm': algorithm
                 }
             else:
                 return {
@@ -259,6 +289,28 @@ class PuzzleLogic:
                 'success': False,
                 'message': f'Errore: {str(e)}'
             }
+    
+    def _find_optimal_solution(self, state_str: str) -> Optional[int]:
+        """
+        Trova la lunghezza della soluzione ottimale usando BFS.
+        
+        Args:
+            state_str: Stato in formato Prolog
+            
+        Returns:
+            Lunghezza del percorso ottimale o None
+        """
+        try:
+            query = f"solve_bfs({state_str}, Path, _, _, _)"
+            solutions = list(self.prolog.query(query))
+            
+            if solutions:
+                path = self._parse_prolog_path(solutions[0]['Path'])
+                return len(path) - 1
+        except:
+            pass
+        
+        return None
     
     def _state_to_prolog(self, state: List[int]) -> str:
         """
@@ -482,14 +534,17 @@ class PuzzleLogic:
         """
         if algorithms is None:
             algorithms = ['astar_manhattan', 'astar_misplaced', 'astar_linear',
-                         'idastar', 'bfs', 'greedy']
+                         'astar_combined','bfs', 'greedy'
+                         ]
         
         results = {algo: {
             'total_time': 0,
             'total_nodes': 0,
             'total_moves': 0,
             'solved': 0,
-            'failed': 0
+            'failed': 0,
+            'optimal_count': 0,
+            'optimality_gaps': []
         } for algo in algorithms}
         
         for state in test_states:
@@ -500,7 +555,12 @@ class PuzzleLogic:
                     results[algo]['solved'] += 1
                     results[algo]['total_time'] += result['time']
                     results[algo]['total_nodes'] += result['nodes_explored']
-                    results[algo]['total_moves'] += len(result['path']) - 1
+                    results[algo]['total_moves'] += result['path_length']
+                    
+                    if result.get('optimal', False):
+                        results[algo]['optimal_count'] += 1
+                    
+                    results[algo]['optimality_gaps'].append(result.get('optimality_gap', 0))
                 else:
                     results[algo]['failed'] += 1
         
@@ -511,9 +571,13 @@ class PuzzleLogic:
                 results[algo]['avg_time'] = results[algo]['total_time'] / n
                 results[algo]['avg_nodes'] = results[algo]['total_nodes'] / n
                 results[algo]['avg_moves'] = results[algo]['total_moves'] / n
+                results[algo]['optimality_rate'] = results[algo]['optimal_count'] / n * 100
+                results[algo]['avg_optimality_gap'] = sum(results[algo]['optimality_gaps']) / len(results[algo]['optimality_gaps'])
             else:
                 results[algo]['avg_time'] = float('inf')
                 results[algo]['avg_nodes'] = float('inf')
                 results[algo]['avg_moves'] = float('inf')
+                results[algo]['optimality_rate'] = 0
+                results[algo]['avg_optimality_gap'] = float('inf')
         
         return results
