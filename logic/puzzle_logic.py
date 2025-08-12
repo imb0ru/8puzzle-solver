@@ -8,6 +8,7 @@ import os
 import sys
 import random
 import time
+import atexit
 from pyswip import Prolog
 from typing import List, Dict, Optional, Tuple
 
@@ -28,6 +29,8 @@ class PuzzleLogic:
         self.prolog = None
         self.optimal_solutions = {}  # Cache per soluzioni ottimali
         self._initialize_prolog()
+        # Registra cleanup per evitare warning
+        atexit.register(self.cleanup)
         
     def _initialize_prolog(self):
         """Inizializza l'interprete Prolog e carica la KB."""
@@ -52,6 +55,10 @@ class PuzzleLogic:
                 raise FileNotFoundError("File Prolog mancanti.")
 
             self.prolog = Prolog()
+            
+            # Sopprime warning di SWI-Prolog
+            self.prolog.query("set_prolog_flag(verbose, silent)").close()
+            
             self.prolog.consult(solver_file)
             self.prolog.consult(heuristics_file)
             
@@ -67,13 +74,21 @@ class PuzzleLogic:
         if self.prolog:
             try:
                 # Chiama la funzione di cleanup definita in Prolog
-                list(self.prolog.query("cleanup_prolog"))
+                query = self.prolog.query("cleanup_prolog")
+                list(query)
+                query.close()
+                
+                # Pulisce query pendenti
+                self.prolog.query("halt").close()
             except:
                 pass
+            finally:
+                self.prolog = None
     
     def __del__(self):
         """Destructor per pulire risorse."""
-        self.cleanup()
+        # Non fare nulla qui, lascia che atexit gestisca il cleanup
+        pass
     
     def is_solvable(self, state: List[int]) -> bool:
         """
@@ -206,7 +221,6 @@ class PuzzleLogic:
         algorithm_map = {
             'astar_manhattan': 'solve_astar_manhattan',
             'astar_misplaced': 'solve_astar_misplaced',
-            'astar_linear': 'solve_astar_linear',
             'astar_combined': 'solve_astar_combined',
             'bfs': 'solve_bfs',
             'greedy': 'solve_greedy',
@@ -216,18 +230,20 @@ class PuzzleLogic:
         
         try:
             # Pulisci stati precedenti
-            list(self.prolog.query("retractall(stato_visitato(_))"))
-            list(self.prolog.query("retractall(soluzione_memorizzata(_))"))
-            list(self.prolog.query("retractall(optimal_cost(_))"))
+            self.prolog.query("retractall(stato_visitato(_))").close()
+            self.prolog.query("retractall(soluzione_memorizzata(_))").close()
+            self.prolog.query("retractall(optimal_cost(_))").close()
             
             # Query Prolog
-            query = f"{predicate}({state_str}, Path, NodesExplored, NodesFrontier, Time)"
+            query_str = f"{predicate}({state_str}, Path, NodesExplored, NodesFrontier, Time)"
             
             if self.debug:
-                print(f"🔍 Query: {query}")
+                print(f"🔍 Query: {query_str}")
             
             start_time = time.time()
-            solutions = list(self.prolog.query(query))
+            query = self.prolog.query(query_str)
+            solutions = list(query)
+            query.close()
             elapsed_time = time.time() - start_time
             
             if solutions:
@@ -236,7 +252,9 @@ class PuzzleLogic:
                 path_length = len(path) - 1
                 
                 # Ottieni il costo ottimale trovato dall'algoritmo
-                optimal_cost_result = list(self.prolog.query("optimal_cost(Cost)"))
+                optimal_query = self.prolog.query("optimal_cost(Cost)")
+                optimal_cost_result = list(optimal_query)
+                optimal_query.close()
                 algorithm_cost = optimal_cost_result[0]['Cost'] if optimal_cost_result else path_length
                 
                 # Calcola o recupera la soluzione ottimale per questo stato
@@ -258,7 +276,7 @@ class PuzzleLogic:
                     # Se non riusciamo a trovare l'ottimo, usiamo euristiche
                     # Gli algoritmi completi e ammissibili sono ottimali
                     is_optimal = algorithm in ['bfs', 'astar_manhattan', 
-                                             'astar_misplaced', 'astar_linear', 'astar_combined']
+                                             'astar_misplaced', 'astar_combined']
                 
                 # Calcola memoria utilizzata (approssimativa)
                 memory = (solution['NodesExplored'] + solution['NodesFrontier']) * 9 * 4
@@ -301,8 +319,10 @@ class PuzzleLogic:
             Lunghezza del percorso ottimale o None
         """
         try:
-            query = f"solve_bfs({state_str}, Path, _, _, _)"
-            solutions = list(self.prolog.query(query))
+            query_str = f"solve_bfs({state_str}, Path, _, _, _)"
+            query = self.prolog.query(query_str)
+            solutions = list(query)
+            query.close()
             
             if solutions:
                 path = self._parse_prolog_path(solutions[0]['Path'])
@@ -399,64 +419,7 @@ class PuzzleLogic:
         
         return count
     
-    def get_linear_conflict(self, state: List[int]) -> int:
-        """
-        Calcola il linear conflict (Manhattan + conflitti lineari).
-        
-        Args:
-            state: Stato del puzzle
-            
-        Returns:
-            Euristica linear conflict
-        """
-        manhattan = self.get_manhattan_distance(state)
-        conflicts = 0
-        
-        # Controlla conflitti per ogni riga
-        for row in range(3):
-            for col1 in range(3):
-                pos1 = row * 3 + col1
-                if state[pos1] == 0:
-                    continue
-                    
-                goal_row1 = (state[pos1] - 1) // 3
-                if goal_row1 == row:  # La tessera appartiene a questa riga
-                    for col2 in range(col1 + 1, 3):
-                        pos2 = row * 3 + col2
-                        if state[pos2] == 0:
-                            continue
-                            
-                        goal_row2 = (state[pos2] - 1) // 3
-                        goal_col2 = (state[pos2] - 1) % 3
-                        goal_col1 = (state[pos1] - 1) % 3
-                        
-                        # Conflitto se entrambe appartengono alla riga e sono invertite
-                        if goal_row2 == row and goal_col1 > goal_col2:
-                            conflicts += 2
-        
-        # Controlla conflitti per ogni colonna
-        for col in range(3):
-            for row1 in range(3):
-                pos1 = row1 * 3 + col
-                if state[pos1] == 0:
-                    continue
-                    
-                goal_col1 = (state[pos1] - 1) % 3
-                if goal_col1 == col:  # La tessera appartiene a questa colonna
-                    for row2 in range(row1 + 1, 3):
-                        pos2 = row2 * 3 + col
-                        if state[pos2] == 0:
-                            continue
-                            
-                        goal_col2 = (state[pos2] - 1) % 3
-                        goal_row2 = (state[pos2] - 1) // 3
-                        goal_row1 = (state[pos1] - 1) // 3
-                        
-                        # Conflitto se entrambe appartengono alla colonna e sono invertite
-                        if goal_col2 == col and goal_row1 > goal_row2:
-                            conflicts += 2
-        
-        return manhattan + conflicts
+    
     
     def validate_state(self, state: List[int]) -> Tuple[bool, str]:
         """
@@ -533,7 +496,7 @@ class PuzzleLogic:
             Dizionario con risultati del benchmark
         """
         if algorithms is None:
-            algorithms = ['astar_manhattan', 'astar_misplaced', 'astar_linear',
+            algorithms = ['astar_manhattan', 'astar_misplaced',
                          'astar_combined','bfs', 'greedy'
                          ]
         

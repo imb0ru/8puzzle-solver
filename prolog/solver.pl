@@ -3,7 +3,7 @@
    =========================================================
    
    Implementazione di algoritmi di ricerca per l'8-puzzle:
-   - A* con diverse euristiche (Manhattan, Misplaced, Linear Conflict, Combined)
+   - A* con diverse euristiche (Manhattan, Misplaced, Combined)
    - BFS (Breadth-First Search)
    - Greedy Best-First Search
    
@@ -12,7 +12,6 @@
 :- module(solver, [
     solve_astar_manhattan/5,
     solve_astar_misplaced/5,
-    solve_astar_linear/5,
     solve_astar_combined/5,
     solve_bfs/5,
     solve_greedy/5,
@@ -222,52 +221,6 @@ expand_astar_nodes_misplaced([State|States], PathSoFar, G, Visited, Nodes) :-
         F is NewG + H,
         append(PathSoFar, [State], NewPath),
         expand_astar_nodes_misplaced(States, PathSoFar, G, Visited, RestNodes),
-        Nodes = [node(State, NewPath, NewG, H, F)|RestNodes]
-    ).
-
-% =========================================================
-% A* CON LINEAR CONFLICT
-% =========================================================
-
-solve_astar_linear(Initial, Path, NodesExplored, NodesFrontier, Time) :-
-    get_time(StartTime),
-    init_counters,
-    retractall(stato_visitato(_)),
-    
-    linear_conflict(Initial, H),
-    astar_search_linear([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
-    update_optimal_cost(FinalCost),
-    
-    nodes_explored(NodesExplored),
-    nodes_frontier(NodesFrontier),
-    get_time(EndTime),
-    Time is EndTime - StartTime.
-
-astar_search_linear([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
-    goal_state(State),
-    !.
-
-astar_search_linear([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
-    increment_explored,
-    successors(State, Successors),
-    expand_astar_nodes_linear(Successors, PathSoFar, G, Visited, NewNodes),
-    append(Rest, NewNodes, OpenList),
-    sort_by_f(OpenList, SortedOpen),
-    length(SortedOpen, FrontierSize),
-    update_frontier(FrontierSize),
-    astar_search_linear(SortedOpen, [State|Visited], Solution, FinalCost).
-
-expand_astar_nodes_linear([], _, _, _, []).
-expand_astar_nodes_linear([State|States], PathSoFar, G, Visited, Nodes) :-
-    (   member(State, Visited)
-    ->  expand_astar_nodes_linear(States, PathSoFar, G, Visited, Nodes)
-    ;   member(State, PathSoFar)
-    ->  expand_astar_nodes_linear(States, PathSoFar, G, Visited, Nodes)
-    ;   NewG is G + 1,
-        linear_conflict(State, H),
-        F is NewG + H,
-        append(PathSoFar, [State], NewPath),
-        expand_astar_nodes_linear(States, PathSoFar, G, Visited, RestNodes),
         Nodes = [node(State, NewPath, NewG, H, F)|RestNodes]
     ).
 
