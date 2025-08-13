@@ -43,11 +43,12 @@ Il progetto affronta il problema dell'8-puzzle implementando e confrontando dive
 | Componente | Descrizione |
 |------------|-------------|
 | `prolog/solver.pl` | Base di conoscenza Prolog con algoritmi di ricerca e euristiche |
-| `prolog/heuristics.pl` | Modulo dedicato alle funzioni euristiche avanzate |
+| `prolog/heuristics.pl` | Modulo dedicato alle funzioni euristiche |
 | `gui/puzzle_gui.py` | Interfaccia grafica interattiva con animazioni e statistiche |
-| `logic/puzzle_logic.py` | Logica di business e interfacciamento Python-Prolog |
+| `logic/puzzle_logic.py` | Logica e interfacciamento Python-Prolog |
 | `test/test.py` | Suite di test per confronto prestazioni algoritmi |
 | `docs/` | Documentazione tecnica completa in LaTeX |
+| `results/` | Report di ogni test effettuato |
 
 ---
 
@@ -92,7 +93,7 @@ swipl --version   # >= 8.4
 
 ```bash
 git clone https://github.com/imb0ru/8puzzle-solver.git
-cd 8puzzle-ai-solver
+cd 8puzzle-solver
 ```
 
 ### 3. Ambiente virtuale
@@ -116,19 +117,13 @@ pip install -r requirements.txt
 ### 🎮 Interfaccia grafica principale
 
 ```bash
-python app.py
+python app.py --help
 ```
 
 ### 🧪 Suite di test
 
 ```bash
-python test/test.py 
-```
-
-### 🔧 Modalità debug
-
-```bash
-python app.py --debug --verbose
+python test/test.py --help
 ```
 
 ---

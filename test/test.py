@@ -1,5 +1,5 @@
 """
-test.py - Test e test per confrontare gli algoritmi
+test.py - Test per confrontare gli algoritmi
 =============================================================
 Esegue test sistematici su tutti gli algoritmi implementati.
 Esporta sempre risultati e grafici automaticamente.
@@ -9,8 +9,6 @@ import sys
 import os
 import time
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from typing import List, Dict
 import json
 import argparse
@@ -29,28 +27,49 @@ class PuzzleTest:
         """Inizializza il test."""
         self.logic = PuzzleLogic(debug=False)
         self.results = []
-        
-        # Crea cartella results con percorso assoluto
         self.results_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
             'results'
         )
+        # Non creiamo più la cartella qui, sarà creata al momento dell'esecuzione
+    
+    def create_run_directory(self, timestamp: str) -> str:
+        """
+        Crea una cartella specifica per questa esecuzione del test.
         
-        # Crea la directory se non esiste
+        Args:
+            timestamp: Timestamp per il nome della cartella
+            
+        Returns:
+            Percorso completo della cartella creata
+        """
+        # Crea prima la cartella principale results se non esiste
         try:
             os.makedirs(self.results_dir, exist_ok=True)
-            print(f"📁 Cartella risultati: {self.results_dir}")
+        except Exception as e:
+            print(f"⚠️ Errore nella creazione della cartella results: {e}")
+            self.results_dir = os.getcwd()
+            print(f"📁 Userò la cartella corrente: {self.results_dir}")
+        
+        # Crea la cartella per questa esecuzione
+        run_dir = os.path.join(self.results_dir, f"test_{timestamp}")
+        
+        try:
+            os.makedirs(run_dir, exist_ok=True)
+            print(f"📁 Cartella risultati per questa esecuzione: {run_dir}")
             
             # Test di scrittura
-            test_file = os.path.join(self.results_dir, '.test_write')
+            test_file = os.path.join(run_dir, '.test_write')
             with open(test_file, 'w') as f:
                 f.write('test')
             os.remove(test_file)
             
+            return run_dir
+            
         except Exception as e:
-            print(f"⚠️ Errore con la cartella results: {e}")
-            self.results_dir = os.getcwd()
-            print(f"📁 Usando cartella corrente: {self.results_dir}")
+            print(f"⚠️ Errore nella creazione della cartella: {e}")
+            print(f"📁 Userò la cartella principale: {self.results_dir}")
+            return self.results_dir
     
     def generate_test_puzzles(self, count: int, difficulty: str) -> List[List[int]]:
         """
@@ -179,7 +198,7 @@ class PuzzleTest:
             DataFrame con tutti i risultati
         """
         print("\n" + "=" * 60)
-        print("🚀 AVVIO TEST COMPLETO")
+        print("🚀 AVVIO test COMPLETO")
         print("=" * 60)
         print(f"Configurazione:")
         print(f"  • Puzzle per difficoltà: {n_puzzles}")
@@ -208,7 +227,7 @@ class PuzzleTest:
         final_df = pd.concat(all_results, ignore_index=True)
         
         print("\n" + "=" * 60)
-        print("✅ TEST COMPLETATO!")
+        print("✅ test COMPLETATO!")
         print("=" * 60)
         
         return final_df
@@ -320,169 +339,7 @@ class PuzzleTest:
         
         return stats
     
-    def create_plots(self, df: pd.DataFrame, timestamp: str):
-        """
-        Crea e salva tutti i grafici dei risultati.
-        
-        Args:
-            df: DataFrame con i risultati
-            timestamp: Timestamp per il nome del file
-        """
-        try:
-            print("\n📊 Generazione grafici...")
-            
-            # Imposta stile
-            sns.set_style("whitegrid")
-            
-            # Crea figura con subplots
-            fig = plt.figure(figsize=(20, 12))
-            
-            # Titolo principale
-            fig.suptitle('8-Puzzle Test Results - Analisi Completa', 
-                        fontsize=18, fontweight='bold')
-            
-            # Filtra solo successi per alcuni grafici
-            success_df = df[df['success'] == True].copy()
-            
-            if success_df.empty:
-                print("⚠️ Nessun dato da visualizzare")
-                plt.close()
-                return
-            
-            # Colori per algoritmi
-            algo_colors = {
-                'astar_manhattan': '#2196F3',
-                'astar_misplaced': '#4CAF50',
-                'astar_combined': '#9C27B0',
-                'bfs': '#F44336',
-                'greedy': '#FFA726'
-            }
-            
-            # 1. Tempo medio per algoritmo e difficoltà
-            ax1 = plt.subplot(2, 3, 1)
-            pivot_time = success_df.pivot_table(
-                values='time', 
-                index='algorithm', 
-                columns='difficulty_category', 
-                aggfunc='mean'
-            )
-            pivot_time.plot(kind='bar', ax=ax1, color=['#81C784', '#FFB74D', '#E57373', '#9575CD'])
-            ax1.set_title('Tempo Medio per Algoritmo e Difficoltà', fontweight='bold')
-            ax1.set_xlabel('Algoritmo')
-            ax1.set_ylabel('Tempo (s)')
-            ax1.legend(title='Difficoltà', loc='upper right')
-            ax1.grid(True, alpha=0.3)
-            plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha='right')
-            
-            # 2. Distribuzione mosse per difficoltà
-            ax2 = plt.subplot(2, 3, 2)
-            sns.boxplot(data=success_df, x='difficulty_category', y='path_length', 
-                       hue='algorithm', ax=ax2, palette=algo_colors)
-            ax2.set_title('Distribuzione Mosse per Difficoltà', fontweight='bold')
-            ax2.set_xlabel('Difficoltà')
-            ax2.set_ylabel('Numero di Mosse')
-            ax2.legend(title='Algoritmo', bbox_to_anchor=(1.05, 1), loc='upper left')
-            
-            # 3. Nodi esplorati (scala log)
-            ax3 = plt.subplot(2, 3, 3)
-            for algo in success_df['algorithm'].unique():
-                algo_data = success_df[success_df['algorithm'] == algo]
-                ax3.scatter(algo_data['puzzle_manhattan'], algo_data['nodes_explored'],
-                          label=algo, alpha=0.6, color=algo_colors.get(algo, '#333'),
-                          s=30)
-            ax3.set_title('Nodi Esplorati vs Complessità Puzzle', fontweight='bold')
-            ax3.set_xlabel('Manhattan Distance Iniziale')
-            ax3.set_ylabel('Nodi Esplorati (scala log)')
-            ax3.set_yscale('log')
-            ax3.legend(loc='upper left')
-            ax3.grid(True, alpha=0.3)
-            
-            # 4. Success rate per difficoltà
-            ax4 = plt.subplot(2, 3, 4)
-            success_rates = df.pivot_table(
-                values='success',
-                index='algorithm',
-                columns='difficulty_category',
-                aggfunc='mean'
-            ) * 100
-            
-            x = range(len(success_rates.index))
-            width = 0.2
-            difficulties = success_rates.columns
-            
-            for i, diff in enumerate(difficulties):
-                offset = (i - len(difficulties)/2) * width + width/2
-                ax4.bar([xi + offset for xi in x], success_rates[diff].values,
-                       width, label=diff, alpha=0.8)
-            
-            ax4.set_title('Tasso di Successo per Algoritmo e Difficoltà', fontweight='bold')
-            ax4.set_xlabel('Algoritmo')
-            ax4.set_ylabel('Success Rate (%)')
-            ax4.set_xticks(x)
-            ax4.set_xticklabels(success_rates.index, rotation=45, ha='right')
-            ax4.legend(title='Difficoltà')
-            ax4.axhline(y=100, color='r', linestyle='--', alpha=0.3)
-            ax4.grid(True, alpha=0.3)
-            
-            # 5. Efficienza (Tempo/Mossa)
-            ax5 = plt.subplot(2, 3, 5)
-            success_df['efficiency'] = success_df['time'] / success_df['path_length']
-            efficiency_pivot = success_df.pivot_table(
-                values='efficiency',
-                index='algorithm',
-                columns='difficulty_category',
-                aggfunc='mean'
-            )
-            efficiency_pivot.plot(kind='bar', ax=ax5, 
-                                 color=['#81C784', '#FFB74D', '#E57373', '#9575CD'])
-            ax5.set_title('Efficienza Temporale (Tempo per Mossa)', fontweight='bold')
-            ax5.set_xlabel('Algoritmo')
-            ax5.set_ylabel('Tempo/Mossa (s)')
-            ax5.legend(title='Difficoltà')
-            ax5.grid(True, alpha=0.3)
-            plt.setp(ax5.xaxis.get_majorticklabels(), rotation=45, ha='right')
-            
-            # 6. Confronto complessivo (radar chart simulato con bar)
-            ax6 = plt.subplot(2, 3, 6)
-            
-            # Calcola metriche normalizzate per ogni algoritmo
-            metrics_data = []
-            for algo in success_df['algorithm'].unique():
-                algo_data = success_df[success_df['algorithm'] == algo]
-                metrics_data.append({
-                    'Algorithm': algo,
-                    'Speed': 1 / (algo_data['time'].mean() + 0.001),  # Inverso per avere più alto = meglio
-                    'Optimality': 1 / (algo_data['path_length'].mean() + 1),
-                    'Efficiency': 1 / (algo_data['nodes_explored'].mean() + 1)
-                })
-            
-            metrics_df = pd.DataFrame(metrics_data)
-            metrics_df.set_index('Algorithm')[['Speed', 'Optimality', 'Efficiency']].plot(
-                kind='bar', ax=ax6, color=['#4CAF50', '#2196F3', '#FF9800']
-            )
-            ax6.set_title('Confronto Metriche Normalizzate', fontweight='bold')
-            ax6.set_xlabel('Algoritmo')
-            ax6.set_ylabel('Score (più alto = meglio)')
-            ax6.legend(title='Metrica')
-            ax6.grid(True, alpha=0.3)
-            plt.setp(ax6.xaxis.get_majorticklabels(), rotation=45, ha='right')
-            
-            plt.tight_layout()
-            
-            # Salva il grafico
-            plot_path = os.path.join(self.results_dir, f"test_plots_{timestamp}.png")
-            plt.savefig(plot_path, dpi=150, bbox_inches='tight')
-            print(f"   ✅ Grafici salvati in: {plot_path}")
-            
-            # Chiudi la figura per liberare memoria
-            plt.close()
-            
-        except Exception as e:
-            print(f"❌ Errore nella creazione dei grafici: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def export_results(self, df: pd.DataFrame, stats: Dict, timestamp: str):
+    def export_results(self, df: pd.DataFrame, stats: Dict, timestamp: str, run_dir: str = None):
         """
         Esporta tutti i risultati in vari formati.
         
@@ -490,19 +347,23 @@ class PuzzleTest:
             df: DataFrame con i risultati
             stats: Statistiche aggregate
             timestamp: Timestamp per i nomi dei file
+            run_dir: Cartella dove salvare i file (se None, usa self.results_dir)
         """
         try:
             print("\n💾 Esportazione risultati...")
             
+            # Usa la cartella specificata o quella di default
+            export_dir = run_dir if run_dir is not None else self.results_dir
+            
             base_filename = f"test_{timestamp}"
             
             # 1. Esporta CSV con dati grezzi
-            csv_file = os.path.join(self.results_dir, f"{base_filename}.csv")
+            csv_file = os.path.join(export_dir, f"{base_filename}.csv")
             df.to_csv(csv_file, index=False, encoding='utf-8-sig')
             print(f"   ✅ CSV dati grezzi: {csv_file}")
             
             # 2. Esporta statistiche aggregate in JSON
-            json_file = os.path.join(self.results_dir, f"{base_filename}_stats.json")
+            json_file = os.path.join(export_dir, f"{base_filename}_stats.json")
             
             # Converti infinity in stringa per JSON
             json_stats = {}
@@ -520,21 +381,10 @@ class PuzzleTest:
                 json.dump(json_stats, f, indent=2, default=str)
             print(f"   ✅ JSON statistiche: {json_file}")
             
-            # 3. Crea report Markdown dettagliato
-            md_file = os.path.join(self.results_dir, f"{base_filename}_report.md")
+            # 3. Crea report Markdown dettagliato (con grafici inclusi)
+            md_file = os.path.join(export_dir, f"{base_filename}_report.md")
             self._create_markdown_report(df, stats, md_file, timestamp)
             print(f"   ✅ Report Markdown: {md_file}")
-            
-            # 4. Esporta tabella riassuntiva per difficoltà
-            summary_file = os.path.join(self.results_dir, f"{base_filename}_summary.csv")
-            summary_df = df.groupby(['algorithm', 'difficulty_category']).agg({
-                'success': 'mean',
-                'time': 'mean',
-                'path_length': 'mean',
-                'nodes_explored': 'mean'
-            }).round(3)
-            summary_df.to_csv(summary_file)
-            print(f"   ✅ CSV riassuntivo: {summary_file}")
             
         except Exception as e:
             print(f"❌ Errore nell'esportazione: {e}")
@@ -543,7 +393,7 @@ class PuzzleTest:
     
     def _create_markdown_report(self, df: pd.DataFrame, stats: Dict, 
                                filename: str, timestamp: str):
-        """Crea un report dettagliato in formato Markdown."""
+        """Crea un report dettagliato in formato Markdown con grafici inclusi."""
         with open(filename, 'w', encoding='utf-8') as f:
             f.write("# 🧩 8-Puzzle Test Report\n\n")
             f.write(f"**Data Esecuzione**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -669,7 +519,7 @@ Tutti i risultati vengono automaticamente:
         print(f"⚠️ Numero minimo di puzzle è 10. Usando 10 invece di {args.puzzles}")
     
     print("=" * 60)
-    print("🧩 8-PUZZLE TEST SUITE v2.0")
+    print("🧩 8-PUZZLE test SUITE v2.0")
     print("=" * 60)
     print(f"📋 Configurazione:")
     print(f"  • Puzzle per difficoltà: {n_puzzles}")
@@ -679,13 +529,16 @@ Tutti i risultati vengono automaticamente:
     print(f"  • Test totali: {n_puzzles * 4 * 5}")
     print("=" * 60)
     
-    # Timestamp per questa esecuzione
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
     try:
         # Crea istanza del test
         test = PuzzleTest()
-
+        
+        # Timestamp per questa esecuzione
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Crea cartella specifica per questa esecuzione
+        run_dir = test.create_run_directory(timestamp)
+        
         # Esegui test completo
         results_df = test.run_complete_test(n_puzzles)
         
@@ -693,30 +546,25 @@ Tutti i risultati vengono automaticamente:
         stats = test.analyze_results(results_df)
         
         # Esporta sempre tutti i risultati
-        test.export_results(results_df, stats, timestamp)
-        
-        # Crea sempre i grafici
-        test.create_plots(results_df, timestamp)
+        test.export_results(results_df, stats, timestamp, run_dir)
         
         # Riepilogo finale
         print("\n" + "=" * 60)
-        print("✅ TEST COMPLETATO CON SUCCESSO!")
+        print("✅ test COMPLETATO CON SUCCESSO!")
         print("=" * 60)
         
         print(f"\n📁 Tutti i risultati sono stati salvati in:")
-        print(f"   {test.results_dir}")
-
+        print(f"   {run_dir}")
+        
         print(f"\n📄 File generati:")
         files_created = [
             f"test_{timestamp}.csv",
             f"test_{timestamp}_stats.json",
-            f"test_{timestamp}_report.md",
-            f"test_{timestamp}_summary.csv",
-            f"test_plots_{timestamp}.png"
+            f"test_{timestamp}_report.md"
         ]
         
         for filename in files_created:
-            filepath = os.path.join(test.results_dir, filename)
+            filepath = os.path.join(run_dir, filename)
             if os.path.exists(filepath):
                 size = os.path.getsize(filepath)
                 print(f"   ✓ {filename} ({size:,} bytes)")
@@ -738,8 +586,8 @@ Tutti i risultati vengono automaticamente:
                 print(f"  • Success rate: {best[1]['success_rate']:.1f}%")
         
         print("\n" + "=" * 60)
-        print("📊 Consulta il report completo in:")
-        print(f"   {os.path.join(test.results_dir, f'test_{timestamp}_report.md')}")
+        print("📊 Il report completo con grafici è disponibile in:")
+        print(f"   {os.path.join(run_dir, f'test_{timestamp}_report.md')}")
         print("=" * 60)
         
         return results_df, stats
