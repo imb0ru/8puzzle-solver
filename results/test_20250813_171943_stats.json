@@ -1,0 +1,42 @@
+{
+  "astar_manhattan": {
+    "success_rate": 100.0,
+    "avg_time": 0.015122433503468832,
+    "avg_moves": 9.633333333333333,
+    "avg_nodes": 61.81666666666667,
+    "total_tests": 60,
+    "successful_tests": 60
+  },
+  "astar_misplaced": {
+    "success_rate": 100.0,
+    "avg_time": 2.05949010848999,
+    "avg_moves": 9.633333333333333,
+    "avg_nodes": 641.0833333333334,
+    "total_tests": 60,
+    "successful_tests": 60
+  },
+  "astar_combined": {
+    "success_rate": 100.0,
+    "avg_time": 0.019800782203674316,
+    "avg_moves": 9.666666666666666,
+    "avg_nodes": 73.6,
+    "total_tests": 60,
+    "successful_tests": 60
+  },
+  "bfs": {
+    "success_rate": 100.0,
+    "avg_time": 4.679171927769979,
+    "avg_moves": 9.633333333333333,
+    "avg_nodes": 8661.65,
+    "total_tests": 60,
+    "successful_tests": 60
+  },
+  "greedy": {
+    "success_rate": 100.0,
+    "avg_time": 0.013342686494191488,
+    "avg_moves": 24.6,
+    "avg_nodes": 80.21666666666667,
+    "total_tests": 60,
+    "successful_tests": 60
+  }
+}

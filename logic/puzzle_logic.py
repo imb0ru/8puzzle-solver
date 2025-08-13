@@ -426,17 +426,17 @@ class PuzzleLogic:
         
         return moves
     
-    def benchmark_algorithms(self, test_states: List[List[int]], 
+    def test_algorithms(self, test_states: List[List[int]], 
                            algorithms: List[str] = None) -> Dict:
         """
-        Esegue benchmark su più algoritmi.
+        Esegue test su più algoritmi.
         
         Args:
             test_states: Lista di stati da testare
             algorithms: Lista di algoritmi (default: tutti)
             
         Returns:
-            Dizionario con risultati del benchmark
+            Dizionario con risultati del test
         """
         if algorithms is None:
             algorithms = ['astar_manhattan', 'astar_misplaced',
