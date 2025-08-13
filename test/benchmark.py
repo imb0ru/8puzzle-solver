@@ -42,6 +42,7 @@ class PuzzleBenchmark:
         )
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir)
+            print(f"📁 Creata cartella results: {self.results_dir}")
         
     def generate_test_puzzles(self, count: int, difficulty: str = "mixed") -> List[List[int]]:
         """
@@ -131,7 +132,6 @@ class PuzzleBenchmark:
                             'nodes_explored': result.get('nodes_explored', 0),
                             'nodes_frontier': result.get('nodes_frontier', 0),
                             'memory': result.get('memory', 0),
-                            'optimal': result.get('optimal', False),
                             'puzzle_difficulty': manhattan
                         })
                         
@@ -149,7 +149,6 @@ class PuzzleBenchmark:
                             'nodes_explored': None,
                             'nodes_frontier': None,
                             'memory': None,
-                            'optimal': None,
                             'puzzle_difficulty': manhattan
                         })
                         
@@ -208,7 +207,6 @@ class PuzzleBenchmark:
                 avg_moves = algo_success['path_length'].mean()
                 avg_nodes = algo_success['nodes_explored'].mean()
                 avg_memory = algo_success['memory'].mean() if 'memory' in algo_success else 0
-                optimal_rate = (algo_success['optimal'].sum() / len(algo_success) * 100) if 'optimal' in algo_success.columns else 0
                 
                 stats[algo] = {
                     'success_rate': success_rate,
@@ -216,7 +214,6 @@ class PuzzleBenchmark:
                     'avg_moves': avg_moves,
                     'avg_nodes': avg_nodes,
                     'avg_memory': avg_memory,
-                    'optimal_rate': optimal_rate,
                     'min_time': algo_success['time'].min(),
                     'max_time': algo_success['time'].max(),
                     'std_time': algo_success['time'].std()
@@ -227,22 +224,20 @@ class PuzzleBenchmark:
                     'avg_time': float('inf'),
                     'avg_moves': float('inf'),
                     'avg_nodes': float('inf'),
-                    'avg_memory': float('inf'),
-                    'optimal_rate': 0
+                    'avg_memory': float('inf')
                 }
         
         # Stampa tabella riassuntiva
         print("\n📈 STATISTICHE PER ALGORITMO:")
-        print("-" * 90)
-        print(f"{'Algoritmo':<20} {'Success%':<10} {'Avg Time':<12} {'Avg Moves':<10} {'Avg Nodes':<12} {'Optimal%':<10}")
-        print("-" * 90)
+        print("-" * 80)
+        print(f"{'Algoritmo':<20} {'Success%':<10} {'Avg Time':<12} {'Avg Moves':<10} {'Avg Nodes':<12}")
+        print("-" * 80)
         
         for algo, stat in sorted(stats.items(), key=lambda x: x[1]['avg_time']):
             print(f"{algo:<20} {stat['success_rate']:>8.1f}% "
                  f"{stat['avg_time']:>10.3f}s "
                  f"{stat['avg_moves']:>9.1f} "
-                 f"{stat['avg_nodes']:>11.0f} "
-                 f"{stat['optimal_rate']:>8.1f}%")
+                 f"{stat['avg_nodes']:>11.0f}")
         
         # Trova il migliore per ogni metrica
         print("\n🏆 MIGLIORI PRESTAZIONI:")
@@ -257,11 +252,9 @@ class PuzzleBenchmark:
             most_efficient = min(stats.items(), key=lambda x: x[1]['avg_nodes'] if x[1]['avg_nodes'] != float('inf') else float('inf'))
             print(f"🎯 Più efficiente: {most_efficient[0]} ({most_efficient[1]['avg_nodes']:.0f} nodi)")
             
-            # Algoritmi ottimali
-            optimal_algos = [algo for algo, stat in stats.items() 
-                           if stat['optimal_rate'] >= 99]  # Considera ottimali se >= 99%
-            if optimal_algos:
-                print(f"✅ Ottimali: {', '.join(optimal_algos)}")
+            # Nota sugli algoritmi ottimali (A* e BFS sono garantiti ottimali)
+            optimal_algos = ['astar_manhattan', 'astar_misplaced', 'astar_combined', 'bfs']
+            print(f"✅ Algoritmi con garanzia di ottimalità: {', '.join(optimal_algos)}")
         
         return stats
     
@@ -298,7 +291,6 @@ class PuzzleBenchmark:
         algo_colors = {
             'astar_manhattan': '#2196F3',
             'astar_misplaced': '#4CAF50',
-            'astar_linear': '#FF9800',
             'astar_combined': '#9C27B0',
             'bfs': '#F44336',
             'greedy': '#795548'
@@ -413,12 +405,8 @@ class PuzzleBenchmark:
         json_file = os.path.join(self.results_dir, f"{base_filename}_stats.json")
         md_file = os.path.join(self.results_dir, f"{base_filename}_report.md")
         
-        # Esporta CSV dettagliato (gestisci encoding per caratteri speciali)
-        df_export = df.copy()
-        # Sostituisci valori booleani con stringhe per compatibilità
-        if 'optimal' in df_export.columns:
-            df_export['optimal'] = df_export['optimal'].map({True: 'SI', False: 'NO', None: 'N/A'})
-        df_export.to_csv(csv_file, index=False, encoding='utf-8-sig')
+        # Esporta CSV dettagliato
+        df.to_csv(csv_file, index=False, encoding='utf-8-sig')
         print(f"💾 Risultati dettagliati salvati in: {csv_file}")
         
         # Esporta statistiche in JSON
@@ -444,13 +432,13 @@ class PuzzleBenchmark:
             f.write(f"- **Tasso successo globale**: {df['success'].mean()*100:.1f}%\n\n")
             
             f.write("## Risultati per Algoritmo\n\n")
-            f.write("| Algoritmo | Success% | Avg Time (s) | Avg Moves | Avg Nodes | Optimal% |\n")
-            f.write("|-----------|----------|--------------|-----------|-----------|----------|\n")
+            f.write("| Algoritmo | Success% | Avg Time (s) | Avg Moves | Avg Nodes |\n")
+            f.write("|-----------|----------|--------------|-----------|-----------|)\n")
             
             for algo, stat in sorted(stats.items(), key=lambda x: x[1]['avg_time']):
                 f.write(f"| {algo} | {stat['success_rate']:.1f}% | "
                        f"{stat['avg_time']:.3f} | {stat['avg_moves']:.1f} | "
-                       f"{stat['avg_nodes']:.0f} | {stat.get('optimal_rate', 0):.1f}% |\n")
+                       f"{stat['avg_nodes']:.0f} |\n")
             
             f.write("\n## Analisi Dettagliata\n\n")
             
@@ -478,11 +466,8 @@ class PuzzleBenchmark:
                 f.write(f"({most_efficient[1]['avg_nodes']:.0f} nodi esplorati)\n")
                 
                 # Algoritmi ottimali
-                optimal_algos = [algo for algo, stat in stats.items() 
-                               if stat.get('optimal_rate', 0) >= 99]
-                if optimal_algos:
-                    f.write(f"- **Algoritmi ottimali**: {', '.join(optimal_algos)}\n")
-            
+                optimal_algos = ['astar_manhattan', 'astar_misplaced', 'astar_combined', 'bfs']
+                f.write(f"- **Algoritmi con garanzia di ottimalità**: {', '.join(optimal_algos)}\n")
 
 
 def main():

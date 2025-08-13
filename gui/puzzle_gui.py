@@ -102,7 +102,7 @@ class PuzzleGUI:
         
         ttk.Separator(left_frame, orient="horizontal").pack(fill="x", pady=10)
         
-        # Sezione algoritmi (aggiornata con A* Combined)
+        # Sezione algoritmi
         ttk.Label(left_frame, text="🧠 Algoritmo:", font=("Arial", 10, "bold")).pack(anchor="w", pady=(0, 5))
         
         self.algorithm_var = tk.StringVar(value="astar_manhattan")
@@ -133,16 +133,9 @@ class PuzzleGUI:
         
         ttk.Button(left_frame, text="📊 Confronta Algoritmi", 
                   command=self.compare_algorithms).pack(fill="x", pady=2)
-        
-        ttk.Separator(left_frame, orient="horizontal").pack(fill="x", pady=10)
-        
-        # Sezione visualizzazione
-        ttk.Label(left_frame, text="👁️ Visualizzazione:", font=("Arial", 10, "bold")).pack(anchor="w", pady=(0, 5))
-        
-        self.show_console_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(left_frame, text="Mostra Console Log", 
-                       variable=self.show_console_var,
-                       command=self.toggle_console).pack(anchor="w", padx=20, pady=2)
+    
+        ttk.Button(left_frame, text="❓ Aiuto", 
+                  command=self.show_help).pack(fill="x", pady=2)
         
         ttk.Separator(left_frame, orient="horizontal").pack(fill="x", pady=10)
         
@@ -162,13 +155,11 @@ class PuzzleGUI:
         center_frame = ttk.LabelFrame(upper_frame, text="🧩 8-Puzzle", padding="20")
         center_frame.pack(side="left", fill="both", expand=True)
         
-        # Frame interno per centrare il canvas
-        canvas_container = ttk.Frame(center_frame)
-        canvas_container.pack(expand=True)
-        
-        # Canvas per il puzzle
-        self.canvas = tk.Canvas(canvas_container, width=320, height=320, bg="white", 
-                               highlightthickness=2, highlightbackground="#333")
+        # Canvas per il puzzle - DIMENSIONE CORRETTA (3x3 tiles + spacing)
+        canvas_width = 3 * self.TILE_SIZE + 20  # 320 pixels
+        canvas_height = 3 * self.TILE_SIZE + 20  # 320 pixels
+        self.canvas = tk.Canvas(center_frame, width=canvas_width, height=canvas_height, 
+                               bg="white", highlightthickness=2, highlightbackground="#333")
         self.canvas.pack()
         
         # Frame per info sotto il puzzle
@@ -230,7 +221,6 @@ class PuzzleGUI:
         
         v_scrollbar.config(command=self.console.yview)
         
-        # Aggiungi tag per colorare i messaggi
         self.console.tag_config("info", foreground="#00ff00")
         self.console.tag_config("warning", foreground="#ffaa00")
         self.console.tag_config("error", foreground="#ff0000")
@@ -252,19 +242,23 @@ class PuzzleGUI:
             x = col * self.TILE_SIZE + 10
             y = row * self.TILE_SIZE + 10
             
-            # Crea rettangolo per la tessera
+            # Crea rettangolo per la tessera - DIMENSIONI CORRETTE
             tile_id = self.canvas.create_rectangle(
-                x, y, x + self.TILE_SIZE - 5, y + self.TILE_SIZE - 5,
+                x, y, 
+                x + self.TILE_SIZE - 5,  # Sottrai 5 per il gap tra tessere
+                y + self.TILE_SIZE - 5,  # Sottrai 5 per il gap tra tessere
                 fill=self.TILE_COLORS['bg'],
                 outline="black",
                 width=2,
                 tags=f"tile_{i}"
             )
             
-            # Crea testo per la tessera
+            # Crea testo per la tessera - POSIZIONE CENTRALE CORRETTA
+            text_x = x + (self.TILE_SIZE - 5) // 2  # Centro della tessera
+            text_y = y + (self.TILE_SIZE - 5) // 2  # Centro della tessera
             text_id = self.canvas.create_text(
-                x + self.TILE_SIZE // 2,
-                y + self.TILE_SIZE // 2,
+                text_x,
+                text_y,
                 text="",
                 font=self.TILE_FONT,
                 fill=self.TILE_COLORS['fg'],
@@ -289,7 +283,6 @@ class PuzzleGUI:
         self.master.bind("<Escape>", lambda e: self.stop_solving())
         self.master.bind("<r>", lambda e: self.shuffle_puzzle())
         self.master.bind("<s>", lambda e: self.solve_puzzle())
-        self.master.bind("<c>", lambda e: self.toggle_console())  # Aggiunto shortcut per console
         
         # Click sul canvas per muovere tessere
         self.canvas.bind("<Button-1>", self.on_tile_click)
@@ -332,34 +325,7 @@ class PuzzleGUI:
         """Aggiorna la velocità di animazione."""
         self.animation_speed = int(float(value))
         self.speed_label.config(text=f"{self.animation_speed} ms")
-    
-    def toggle_console(self):
-        """Mostra o nasconde la console dei log."""
-        if self.show_console_var.get():
-            # Mostra console
-            if not self.console_visible:
-                self.console_frame.pack(fill="both", expand=True, pady=(10, 0))
-                self.console_visible = True
-                # Ripristina altezza originale
-                current_width = self.master.winfo_width()
-                x = self.master.winfo_x()
-                y = self.master.winfo_y()
-                self.master.geometry(f"{current_width}x{self.original_window_height}+{x}+{y}")
-                self.log("📝 Console visualizzata", "info")
-        else:
-            # Nascondi console
-            if self.console_visible:
-                # Salva l'altezza corrente prima di nascondere
-                self.original_window_height = self.master.winfo_height()
-                self.console_frame.pack_forget()
-                self.console_visible = False
-                # Riduci altezza finestra
-                current_width = self.master.winfo_width()
-                x = self.master.winfo_x()
-                y = self.master.winfo_y()
-                # Calcola nuova altezza (circa 200 pixel in meno per la console)
-                new_height = self.master.winfo_height() - 200
-                self.master.geometry(f"{current_width}x{new_height}+{x}+{y}")
+
     
     def log(self, message, level="info"):
         """Aggiunge un messaggio alla console."""
@@ -543,14 +509,11 @@ class PuzzleGUI:
                 if result['success']:
                     self.solution_path = result['path']
                     
-                    # Aggiorna statistiche (tranne moves che viene aggiornato durante l'animazione)
+                    # Aggiorna statistiche
                     self.stats['time'] = result['time']
                     self.stats['nodes_explored'] = result['nodes_explored']
                     self.stats['nodes_frontier'] = result['nodes_frontier']
                     self.stats['memory'] = result['memory']
-                    
-                    # NON aggiornare moves qui, sarà fatto durante l'animazione
-                    # self.stats['moves'] = result['path_length']
                     
                     self.update_stats()
                     
@@ -558,13 +521,6 @@ class PuzzleGUI:
                     self.log(f"✅ Soluzione trovata: {result['path_length']} mosse", "success")
                     self.log(f"⏱️ Tempo: {result['time']:.3f}s", "info")
                     self.log(f"🔍 Nodi esplorati: {result['nodes_explored']}", "info")
-                    
-                    if result.get('optimal', False):
-                        self.log("⭐ Soluzione OTTIMALE", "success")
-                    else:
-                        gap = result.get('optimality_gap', 0)
-                        if gap > 0:
-                            self.log(f"📊 Gap di ottimalità: +{gap} mosse", "warning")
                     
                     # Anima soluzione nel thread principale
                     self.master.after(100, lambda: self.animate_solution(self.solution_path))
@@ -684,10 +640,10 @@ class PuzzleGUI:
         tree.heading('Moves', text='Mosse')
         tree.heading('Nodes', text='Nodi Esplorati')
         
-        tree.column('Algorithm', width=180)
-        tree.column('Time (s)', width=120)
-        tree.column('Moves', width=120)
-        tree.column('Nodes', width=150)
+        tree.column('Algorithm', width=200)
+        tree.column('Time (s)', width=150)
+        tree.column('Moves', width=150)
+        tree.column('Nodes', width=200)
         
         tree.pack(pady=20)
         
@@ -773,48 +729,8 @@ class PuzzleGUI:
                 summary_label = ttk.Label(main_frame, text=summary, 
                                         font=("Arial", 10), justify="left")
                 summary_label.pack(pady=10)
-        
-        def export_results():
-            if not results:
-                messagebox.showwarning("Attenzione", "Esegui prima il confronto!")
-                return
-            
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = os.path.join(self.results_dir, f"comparison_{timestamp}.csv")
-            
-            try:
-                import csv
-                with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
-                    writer = csv.writer(f)
-                    # Header
-                    writer.writerow(['Algoritmo', 'Tempo (s)', 'Mosse', 'Nodi Esplorati', 'Nodi Frontiera', 'Memoria (B)'])
-                    
-                    # Dati
-                    for algo, result in results.items():
-                        writer.writerow([
-                            algo,
-                            f"{result['time']:.3f}",
-                            result['path_length'],
-                            result['nodes_explored'],
-                            result.get('nodes_frontier', 'N/A'),
-                            result.get('memory', 'N/A')
-                        ])
-                    
-                    # Aggiungi info sul puzzle
-                    writer.writerow([])
-                    writer.writerow(['Info Puzzle'])
-                    writer.writerow(['Stato iniziale', str(self.current_state)])
-                    writer.writerow(['Data test', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
-                
-                messagebox.showinfo("Successo", f"Risultati esportati in CSV:\n{filename}")
-                self.log(f"📁 Risultati esportati in {filename}", "success")
-            except Exception as e:
-                messagebox.showerror("Errore", f"Errore durante l'export: {e}")
-        
         ttk.Button(button_frame, text="▶️ Avvia Confronto", 
                   command=run_comparison).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="💾 Esporta Risultati", 
-                  command=export_results).pack(side="left", padx=5)
         ttk.Button(button_frame, text="❌ Chiudi", 
                   command=compare_window.destroy).pack(side="left", padx=5)
     
@@ -952,7 +868,3 @@ MEMORIA
         text3.insert("1.0", stats_text)
         text3.config(state="disabled")
         text3.pack(fill="both", expand=True)
-        
-        # Bottone chiudi
-        ttk.Button(help_window, text="Chiudi", 
-                  command=help_window.destroy).pack(pady=10)
