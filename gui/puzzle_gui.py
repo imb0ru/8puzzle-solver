@@ -7,7 +7,6 @@ GUI interattiva con animazioni, statistiche e confronto algoritmi.
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import time
-import threading
 from collections import deque
 import random
 import os
@@ -66,7 +65,6 @@ class PuzzleGUI:
         
         self._setup_ui()
         self._create_puzzle_board()
-        self._bind_events()
         self.update_display()
         
     def _setup_ui(self):
@@ -126,10 +124,6 @@ class PuzzleGUI:
         self.solve_button = ttk.Button(left_frame, text="🔍 Risolvi", 
                                       command=self.solve_puzzle)
         self.solve_button.pack(fill="x", pady=2)
-        
-        self.stop_button = ttk.Button(left_frame, text="⏹️ Stop", 
-                                     command=self.stop_solving, state="disabled")
-        self.stop_button.pack(fill="x", pady=2)
         
         ttk.Button(left_frame, text="📊 Confronta Algoritmi", 
                   command=self.compare_algorithms).pack(fill="x", pady=2)
@@ -235,37 +229,26 @@ class PuzzleGUI:
         self.log("Seleziona un algoritmo e clicca 'Risolvi'", "info")
     
     def _create_puzzle_board(self):
-        """Crea la board del puzzle sul canvas."""
+        """Crea le tessere del puzzle sulla canvas."""
         for i in range(9):
             row = i // 3
             col = i % 3
             x = col * self.TILE_SIZE + 10
             y = row * self.TILE_SIZE + 10
             
-            # Crea rettangolo per la tessera - DIMENSIONI CORRETTE
+            # Crea rettangolo per la tessera
             tile_id = self.canvas.create_rectangle(
-                x, y, 
-                x + self.TILE_SIZE - 5,  # Sottrai 5 per il gap tra tessere
-                y + self.TILE_SIZE - 5,  # Sottrai 5 per il gap tra tessere
-                fill=self.TILE_COLORS['bg'],
-                outline="black",
-                width=2,
-                tags=f"tile_{i}"
+                x, y, x + self.TILE_SIZE, y + self.TILE_SIZE,
+                fill=self.TILE_COLORS['bg'], outline="white", width=2
             )
             
-            # Crea testo per la tessera - POSIZIONE CENTRALE CORRETTA
-            text_x = x + (self.TILE_SIZE - 5) // 2  # Centro della tessera
-            text_y = y + (self.TILE_SIZE - 5) // 2  # Centro della tessera
+            # Crea testo per il numero
             text_id = self.canvas.create_text(
-                text_x,
-                text_y,
-                text="",
-                font=self.TILE_FONT,
-                fill=self.TILE_COLORS['fg'],
-                tags=f"text_{i}"
+                x + self.TILE_SIZE // 2, y + self.TILE_SIZE // 2,
+                text="", font=self.TILE_FONT, fill=self.TILE_COLORS['fg']
             )
             
-            self.tiles[i] = {'rect': tile_id, 'text': text_id}
+            self.tiles[i] = {'rect': tile_id, 'text': text_id, 'pos': i}
     
     def _center_window(self, window, width, height):
         """Centra una finestra sullo schermo."""
@@ -275,17 +258,6 @@ class PuzzleGUI:
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         window.geometry(f"{width}x{height}+{x}+{y}")
-    
-    def _bind_events(self):
-        """Associa eventi alla GUI."""
-        # Keyboard shortcuts
-        self.master.bind("<F1>", lambda e: self.show_help())
-        self.master.bind("<Escape>", lambda e: self.stop_solving())
-        self.master.bind("<r>", lambda e: self.shuffle_puzzle())
-        self.master.bind("<s>", lambda e: self.solve_puzzle())
-        
-        # Click sul canvas per muovere tessere
-        self.canvas.bind("<Button-1>", self.on_tile_click)
     
     def update_display(self):
         """Aggiorna la visualizzazione del puzzle."""
@@ -413,11 +385,8 @@ class PuzzleGUI:
         dialog.grab_set()
         
         # Istruzioni
-        instructions = ttk.Label(dialog, 
-                                text="Inserisci i numeri da 0 a 8\n(0 = spazio vuoto)",
-                                font=("Arial", 11))
-        instructions.pack(pady=10)
-        
+        ttk.Label(dialog, text="Inserisci i numeri da 0 a 8\n(0 = spazio vuoto)", font=("Arial", 11)).pack(pady=10)
+
         # Frame per la griglia
         grid_frame = ttk.Frame(dialog)
         grid_frame.pack(pady=10)
@@ -437,6 +406,8 @@ class PuzzleGUI:
         # Frame per i bottoni
         button_frame = ttk.Frame(dialog)
         button_frame.pack(pady=20)
+        
+        
         
         def apply_config():
             try:
@@ -484,29 +455,26 @@ class PuzzleGUI:
             self.log("⚠️ Risoluzione già in corso", "warning")
             return
         
-        # Reset statistiche
-        self.stats = {
-            'moves': 0,
-            'time': 0,
-            'nodes_explored': 0,
-            'nodes_frontier': 0,
-            'memory': 0
-        }
-        self.update_stats()
+        if self.current_state == self.goal_state:
+            self.log("ℹ️ Il puzzle è già risolto!")
+            return
         
+        
+        self.is_solving = True
+        self.solve_button.config(state="disabled")
+        self.progress.start(100)
+
         algorithm = self.algorithm_var.get()
         self.log(f"🔍 Risoluzione con {algorithm}...", "info")
         self.info_label.config(text=f"Risolvendo con {algorithm}...")
-        
-        # Mostra progress bar
-        self.progress.start(10)
+        self.master.update()
         
         # Esegui in thread separato
         def solve_thread():
             try:
                 result = self.logic.solve(self.current_state, algorithm)
-                
-                if result['success']:
+
+                if result and result['success']:
                     self.solution_path = result['path']
                     
                     # Aggiorna statistiche
@@ -523,11 +491,12 @@ class PuzzleGUI:
                     self.log(f"🔍 Nodi esplorati: {result['nodes_explored']}", "info")
                     
                     # Anima soluzione nel thread principale
-                    self.master.after(100, lambda: self.animate_solution(self.solution_path))
+                    self.master.after(100, lambda: self._on_solution_found())
                 else:
                     self.log(f"❌ {result.get('message', 'Errore sconosciuto')}", "error")
                     self.info_label.config(text="Risoluzione fallita")
-                    
+                    self.master.after(0, self._on_solution_not_found)
+
             except Exception as e:
                 self.log(f"❌ Errore: {e}", "error")
                 if self.debug:
@@ -540,14 +509,30 @@ class PuzzleGUI:
         import threading
         thread = threading.Thread(target=solve_thread, daemon=True)
         thread.start()
+        
+    def _on_solution_found(self):
+        """Callback quando una soluzione è trovata."""
+        self.progress.stop()
+        self.log(f"✅ Soluzione trovata! {len(self.solution_path)} mosse")
+        
+        
+        # Chiedi se animare
+        if messagebox.askyesno("Soluzione trovata", 
+                              f"Trovata soluzione in {len(self.solution_path)} mosse.\n"
+                              f"Vuoi visualizzare l'animazione?"):
+            self.animate_solution(self.solution_path)
+        else:
+            self.is_solving = False
+            self.solve_button.config(state="normal")
     
-    def stop_solving(self):
-        """Ferma l'animazione della soluzione."""
+    def _on_solution_not_found(self, message):
+        """Callback quando nessuna soluzione è trovata."""
+        self.progress.stop()
         self.is_solving = False
         self.solve_button.config(state="normal")
-        self.stop_button.config(state="disabled")
-        self.info_label.config(text="Animazione interrotta")
-        self.log("⏹️ Animazione interrotta", "warning")
+        self.log("❌ Nessuna soluzione trovata")
+        messagebox.showwarning("Nessuna soluzione", 
+                             "Non è stata trovata una soluzione per questa configurazione.")
     
     def animate_solution(self, path):
         """Anima la soluzione passo per passo."""
@@ -557,7 +542,6 @@ class PuzzleGUI:
         
         self.is_solving = True
         self.solve_button.config(state="disabled")
-        self.stop_button.config(state="normal")
         
         # Reset contatore mosse per l'animazione
         self.stats['moves'] = 0
@@ -567,7 +551,6 @@ class PuzzleGUI:
             if not self.is_solving or index >= len(path):
                 self.is_solving = False
                 self.solve_button.config(state="normal")
-                self.stop_button.config(state="disabled")
                 self.info_label.config(text="✅ Soluzione completata!")
                 self.log(f"✅ Animazione completata: {len(path)-1} mosse", "success")
                 return
@@ -868,3 +851,5 @@ MEMORIA
         text3.insert("1.0", stats_text)
         text3.config(state="disabled")
         text3.pack(fill="both", expand=True)
+        
+        

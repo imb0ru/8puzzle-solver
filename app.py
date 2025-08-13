@@ -49,7 +49,7 @@ class EightPuzzleApp:
     def _print_header(self):
         """Stampa l'header dell'applicazione."""
         print("=" * 60)
-        print("🧩 8-PUZZLE AI SOLVER v1.0")
+        print("🧩 8-PUZZLE SOLVER v1.0")
         print("=" * 60)
         print("Ingegneria della Conoscenza - A.A. 2024-2025")
         print("Università degli Studi di Bari 'Aldo Moro'")
@@ -135,8 +135,6 @@ class EightPuzzleApp:
             self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
             
             print("✅ Applicazione pronta!")
-            print("-" * 60)
-            print("💡 Suggerimento: Premi F1 per aiuto, ESC per uscire")
             print("-" * 60)
             
             # Avvia loop principale
