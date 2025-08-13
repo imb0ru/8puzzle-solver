@@ -291,12 +291,14 @@ class PuzzleBenchmark:
         
         if success_df.empty:
             print("⚠️ Nessun dato da visualizzare")
+            plt.close()
             return
         
         # Colori per algoritmi
         algo_colors = {
             'astar_manhattan': '#2196F3',
             'astar_misplaced': '#4CAF50',
+            'astar_linear': '#FF9800',
             'astar_combined': '#9C27B0',
             'bfs': '#F44336',
             'greedy': '#795548'
@@ -330,27 +332,26 @@ class PuzzleBenchmark:
         ax3.tick_params(axis='x', rotation=45)
         ax3.set_yscale('log')
         
-        # 4. Success rate e Ottimalità
+        # 4. Success rate
         ax4 = axes[1, 0]
         success_rates = df.groupby('algorithm')['success'].mean() * 100
-        optimal_rates = success_df.groupby('algorithm')['optimal'].mean() * 100 if 'optimal' in success_df.columns else pd.Series()
         
         x_pos = range(len(success_rates))
-        width = 0.35
+        bars = ax4.bar(x_pos, success_rates.values, 
+                      color=[algo_colors.get(a, '#333') for a in success_rates.index],
+                      alpha=0.8)
         
-        bars1 = ax4.bar([p - width/2 for p in x_pos], success_rates.values, width, 
-                       label='Success Rate', color='#4CAF50', alpha=0.8)
-        if not optimal_rates.empty:
-            bars2 = ax4.bar([p + width/2 for p in x_pos], optimal_rates.values, width,
-                          label='Optimal Rate', color='#2196F3', alpha=0.8)
-        
-        ax4.set_title('Tasso di Successo e Ottimalità', fontsize=12, fontweight='bold')
+        ax4.set_title('Tasso di Successo', fontsize=12, fontweight='bold')
         ax4.set_xlabel('Algoritmo')
         ax4.set_ylabel('Percentuale (%)')
         ax4.set_xticks(x_pos)
         ax4.set_xticklabels(success_rates.index, rotation=45)
-        ax4.legend()
         ax4.axhline(y=100, color='r', linestyle='--', alpha=0.3)
+        
+        # Aggiungi valori sopra le barre
+        for bar, val in zip(bars, success_rates.values):
+            ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                    f'{val:.1f}%', ha='center', va='bottom', fontsize=8)
         
         # 5. Tempo vs Difficoltà
         ax5 = axes[1, 1]
@@ -384,8 +385,11 @@ class PuzzleBenchmark:
         plt.tight_layout()
         
         # Salva il grafico
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
-        print(f"📊 Grafici salvati in: {save_path}")
+        try:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            print(f"📊 Grafici salvati in: {save_path}")
+        except Exception as e:
+            print(f"❌ Errore nel salvare i grafici: {e}")
         
         plt.show()
     
@@ -550,7 +554,7 @@ def main():
     print(f"Configurazione:")
     print(f"  • Puzzle: {args.puzzles}")
     print(f"  • Difficoltà: {args.difficulty}")
-    print(f"  • Algoritmi: {algorithms if algorithms else 'Tutti (6 algoritmi)'}")
+    print(f"  • Algoritmi: {algorithms if algorithms else 'Tutti'}")
     print(f"  • Iterazioni: {args.iterations}")
     print("=" * 60)
     

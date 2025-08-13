@@ -1,0 +1,10 @@
+﻿Algoritmo,Tempo (s),Mosse,Nodi Esplorati,Nodi Frontiera,Memoria (B)
+A* Manhattan,0.051,4,4,6,360
+A* Misplaced,0.001,4,4,6,360
+A* Combined,0.001,4,4,6,360
+BFS,0.002,4,32,28,2160
+Greedy,0.001,4,4,6,360
+
+Info Puzzle
+Stato iniziale,"[1, 2, 3, 5, 0, 6, 4, 7, 8]"
+Data test,2025-08-13 12:34:03

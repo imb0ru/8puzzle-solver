@@ -162,8 +162,12 @@ class PuzzleGUI:
         center_frame = ttk.LabelFrame(upper_frame, text="🧩 8-Puzzle", padding="20")
         center_frame.pack(side="left", fill="both", expand=True)
         
+        # Frame interno per centrare il canvas
+        canvas_container = ttk.Frame(center_frame)
+        canvas_container.pack(expand=True)
+        
         # Canvas per il puzzle
-        self.canvas = tk.Canvas(center_frame, width=320, height=320, bg="white", 
+        self.canvas = tk.Canvas(canvas_container, width=320, height=320, bg="white", 
                                highlightthickness=2, highlightbackground="#333")
         self.canvas.pack()
         
@@ -671,7 +675,7 @@ class PuzzleGUI:
         ttk.Label(main_frame, text=info_text, font=("Arial", 10)).pack()
         
         # Treeview per risultati
-        columns = ('Algorithm', 'Time (s)', 'Moves', 'Nodes', 'Optimal')
+        columns = ('Algorithm', 'Time (s)', 'Moves', 'Nodes')
         tree = ttk.Treeview(main_frame, columns=columns, show='headings', height=8)
         
         # Definisci colonne
@@ -679,13 +683,11 @@ class PuzzleGUI:
         tree.heading('Time (s)', text='Tempo (s)')
         tree.heading('Moves', text='Mosse')
         tree.heading('Nodes', text='Nodi Esplorati')
-        tree.heading('Optimal', text='Ottimale')
         
-        tree.column('Algorithm', width=150)
-        tree.column('Time (s)', width=100)
-        tree.column('Moves', width=100)
-        tree.column('Nodes', width=120)
-        tree.column('Optimal', width=100)
+        tree.column('Algorithm', width=180)
+        tree.column('Time (s)', width=120)
+        tree.column('Moves', width=120)
+        tree.column('Nodes', width=150)
         
         tree.pack(pady=20)
         
@@ -734,21 +736,18 @@ class PuzzleGUI:
                             display_name,
                             f"{result['time']:.3f}",
                             result['path_length'],
-                            result['nodes_explored'],
-                            "✅" if result.get('optimal', False) else "❌"
+                            result['nodes_explored']
                         ))
                     else:
                         tree.insert('', 'end', values=(
                             display_name,
                             "N/A",
                             "N/A",
-                            "N/A",
-                            "❌"
+                            "N/A"
                         ))
                 except Exception as e:
                     tree.insert('', 'end', values=(
                         display_name,
-                        "ERROR",
                         "ERROR",
                         "ERROR",
                         "ERROR"
@@ -781,25 +780,33 @@ class PuzzleGUI:
                 return
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = os.path.join(self.results_dir, f"comparison_{timestamp}.txt")
+            filename = os.path.join(self.results_dir, f"comparison_{timestamp}.csv")
             
             try:
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write("8-PUZZLE ALGORITHM COMPARISON\n")
-                    f.write("=" * 50 + "\n")
-                    f.write(f"Date: {datetime.now()}\n")
-                    f.write(f"Initial State: {self.current_state}\n")
-                    f.write("=" * 50 + "\n\n")
+                import csv
+                with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
+                    writer = csv.writer(f)
+                    # Header
+                    writer.writerow(['Algoritmo', 'Tempo (s)', 'Mosse', 'Nodi Esplorati', 'Nodi Frontiera', 'Memoria (B)'])
                     
+                    # Dati
                     for algo, result in results.items():
-                        f.write(f"{algo}:\n")
-                        f.write(f"  Time: {result['time']:.3f}s\n")
-                        f.write(f"  Moves: {result['path_length']}\n")
-                        f.write(f"  Nodes Explored: {result['nodes_explored']}\n")
-                        f.write(f"  Optimal: {'Yes' if result.get('optimal', False) else 'No'}\n")
-                        f.write("\n")
+                        writer.writerow([
+                            algo,
+                            f"{result['time']:.3f}",
+                            result['path_length'],
+                            result['nodes_explored'],
+                            result.get('nodes_frontier', 'N/A'),
+                            result.get('memory', 'N/A')
+                        ])
+                    
+                    # Aggiungi info sul puzzle
+                    writer.writerow([])
+                    writer.writerow(['Info Puzzle'])
+                    writer.writerow(['Stato iniziale', str(self.current_state)])
+                    writer.writerow(['Data test', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
                 
-                messagebox.showinfo("Successo", f"Risultati esportati in:\n{filename}")
+                messagebox.showinfo("Successo", f"Risultati esportati in CSV:\n{filename}")
                 self.log(f"📁 Risultati esportati in {filename}", "success")
             except Exception as e:
                 messagebox.showerror("Errore", f"Errore durante l'export: {e}")
@@ -939,10 +946,6 @@ NODI IN FRONTIERA
 MEMORIA
 • Stima della memoria utilizzata
 • Importante per puzzle complessi
-
-OTTIMALITÀ
-• ✅ = Soluzione con minimo numero di mosse
-• ❌ = Soluzione valida ma non ottimale
         """
         
         text3 = tk.Text(tab3, wrap="word", font=("Arial", 10), padx=10, pady=10)
