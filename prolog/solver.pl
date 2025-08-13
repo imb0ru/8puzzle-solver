@@ -3,16 +3,14 @@
    =========================================================
    
    Implementazione di algoritmi di ricerca per l'8-puzzle:
-   - A* con diverse euristiche (Manhattan, Misplaced, Combined)
+   - A* con euristica combinata
    - BFS (Breadth-First Search)
    - Greedy Best-First Search
    
    ========================================================= */
 
 :- module(solver, [
-    solve_astar_manhattan/5,
-    solve_astar_misplaced/5,
-    solve_astar_combined/5,
+    solve_astar/5,
     solve_bfs/5,
     solve_greedy/5,
     generate_random_puzzle/2,
@@ -128,15 +126,15 @@ replace_nth(List, N, Elem, Result) :-
     nth0(N, Result, Elem, Rest).
 
 % =========================================================
-% A* CON DISTANZA DI MANHATTAN
+% A* CON EURISTICA COMBINATA
 % =========================================================
 
-solve_astar_manhattan(Initial, Path, NodesExplored, NodesFrontier, Time) :-
+solve_astar(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     get_time(StartTime),
     init_counters,
     retractall(stato_visitato(_)),
     
-    manhattan_distance(Initial, H),
+    combined_heuristic(Initial, H),
     astar_search([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
     update_optimal_cost(FinalCost),
     
@@ -145,7 +143,7 @@ solve_astar_manhattan(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     get_time(EndTime),
     Time is EndTime - StartTime.
 
-% Ricerca A* generica con tracking del costo
+% Ricerca A*
 astar_search([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
     goal_state(State),
     !.
@@ -168,7 +166,7 @@ expand_astar_nodes([State|States], PathSoFar, G, Visited, Nodes) :-
     ;   member(State, PathSoFar)
     ->  expand_astar_nodes(States, PathSoFar, G, Visited, Nodes)
     ;   NewG is G + 1,
-        manhattan_distance(State, H),
+        combined_heuristic(State, H),
         F is NewG + H,
         append(PathSoFar, [State], NewPath),
         expand_astar_nodes(States, PathSoFar, G, Visited, RestNodes),
@@ -181,98 +179,6 @@ sort_by_f(Nodes, Sorted) :-
 
 compare_f(<, node(_, _, _, _, F1), node(_, _, _, _, F2)) :- F1 < F2, !.
 compare_f(>, _, _).
-
-% =========================================================
-% A* CON TESSERE FUORI POSTO
-% =========================================================
-
-solve_astar_misplaced(Initial, Path, NodesExplored, NodesFrontier, Time) :-
-    get_time(StartTime),
-    init_counters,
-    retractall(stato_visitato(_)),
-    
-    misplaced_tiles(Initial, H),
-    astar_search_misplaced([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
-    update_optimal_cost(FinalCost),
-    
-    nodes_explored(NodesExplored),
-    nodes_frontier(NodesFrontier),
-    get_time(EndTime),
-    Time is EndTime - StartTime.
-
-astar_search_misplaced([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
-    goal_state(State),
-    !.
-
-astar_search_misplaced([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
-    increment_explored,
-    successors(State, Successors),
-    expand_astar_nodes_misplaced(Successors, PathSoFar, G, Visited, NewNodes),
-    append(Rest, NewNodes, OpenList),
-    sort_by_f(OpenList, SortedOpen),
-    length(SortedOpen, FrontierSize),
-    update_frontier(FrontierSize),
-    astar_search_misplaced(SortedOpen, [State|Visited], Solution, FinalCost).
-
-expand_astar_nodes_misplaced([], _, _, _, []).
-expand_astar_nodes_misplaced([State|States], PathSoFar, G, Visited, Nodes) :-
-    (   member(State, Visited)
-    ->  expand_astar_nodes_misplaced(States, PathSoFar, G, Visited, Nodes)
-    ;   member(State, PathSoFar)
-    ->  expand_astar_nodes_misplaced(States, PathSoFar, G, Visited, Nodes)
-    ;   NewG is G + 1,
-        misplaced_tiles(State, H),
-        F is NewG + H,
-        append(PathSoFar, [State], NewPath),
-        expand_astar_nodes_misplaced(States, PathSoFar, G, Visited, RestNodes),
-        Nodes = [node(State, NewPath, NewG, H, F)|RestNodes]
-    ).
-
-% =========================================================
-% A* CON EURISTICA COMBINATA
-% =========================================================
-
-solve_astar_combined(Initial, Path, NodesExplored, NodesFrontier, Time) :-
-    get_time(StartTime),
-    init_counters,
-    retractall(stato_visitato(_)),
-    
-    combined_heuristic(Initial, H),
-    astar_search_combined([node(Initial, [Initial], 0, H, H)], [], Path, FinalCost),
-    update_optimal_cost(FinalCost),
-    
-    nodes_explored(NodesExplored),
-    nodes_frontier(NodesFrontier),
-    get_time(EndTime),
-    Time is EndTime - StartTime.
-
-astar_search_combined([node(State, Path, Cost, _, _)|_], _, Path, Cost) :-
-    goal_state(State),
-    !.
-
-astar_search_combined([node(State, PathSoFar, G, _, _)|Rest], Visited, Solution, FinalCost) :-
-    increment_explored,
-    successors(State, Successors),
-    expand_astar_nodes_combined(Successors, PathSoFar, G, Visited, NewNodes),
-    append(Rest, NewNodes, OpenList),
-    sort_by_f(OpenList, SortedOpen),
-    length(SortedOpen, FrontierSize),
-    update_frontier(FrontierSize),
-    astar_search_combined(SortedOpen, [State|Visited], Solution, FinalCost).
-
-expand_astar_nodes_combined([], _, _, _, []).
-expand_astar_nodes_combined([State|States], PathSoFar, G, Visited, Nodes) :-
-    (   member(State, Visited)
-    ->  expand_astar_nodes_combined(States, PathSoFar, G, Visited, Nodes)
-    ;   member(State, PathSoFar)
-    ->  expand_astar_nodes_combined(States, PathSoFar, G, Visited, Nodes)
-    ;   NewG is G + 1,
-        combined_heuristic(State, H),
-        F is NewG + H,
-        append(PathSoFar, [State], NewPath),
-        expand_astar_nodes_combined(States, PathSoFar, G, Visited, RestNodes),
-        Nodes = [node(State, NewPath, NewG, H, F)|RestNodes]
-    ).
 
 % =========================================================
 % BFS (BREADTH-FIRST SEARCH)

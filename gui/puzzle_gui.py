@@ -103,11 +103,9 @@ class PuzzleGUI:
         # Sezione algoritmi
         ttk.Label(left_frame, text="🧠 Algoritmo:", font=("Arial", 10, "bold")).pack(anchor="w", pady=(0, 5))
         
-        self.algorithm_var = tk.StringVar(value="astar_manhattan")
+        self.algorithm_var = tk.StringVar(value="astar")
         algorithms = [
-            ("A* (Manhattan)", "astar_manhattan"),
-            ("A* (Misplaced)", "astar_misplaced"),
-            ("A* (Combined)", "astar_combined"),
+            ("A*", "astar"),
             ("BFS", "bfs"),
             ("Greedy Best-First", "greedy")
         ]
@@ -525,7 +523,7 @@ class PuzzleGUI:
             self.is_solving = False
             self.solve_button.config(state="normal")
     
-    def _on_solution_not_found(self, message):
+    def _on_solution_not_found(self, message=None):
         """Callback quando nessuna soluzione è trovata."""
         self.progress.stop()
         self.is_solving = False
@@ -650,9 +648,7 @@ class PuzzleGUI:
                 tree.delete(item)
             
             algorithms = [
-                ('A* Manhattan', 'astar_manhattan'),
-                ('A* Misplaced', 'astar_misplaced'),
-                ('A* Combined', 'astar_combined'),
+                ('A*', 'astar'),
                 ('BFS', 'bfs'),
                 ('Greedy', 'greedy')
             ]
@@ -712,6 +708,7 @@ class PuzzleGUI:
                 summary_label = ttk.Label(main_frame, text=summary, 
                                         font=("Arial", 10), justify="left")
                 summary_label.pack(pady=10)
+        
         ttk.Button(button_frame, text="▶️ Avvia Confronto", 
                   command=run_comparison).pack(side="left", padx=5)
         ttk.Button(button_frame, text="❌ Chiudi", 
@@ -783,35 +780,28 @@ SHORTCUTS:
         algo_text = """
 ALGORITMI DISPONIBILI:
 
-A* (MANHATTAN DISTANCE)
-• Euristica: Somma delle distanze Manhattan
-• Garantisce soluzione ottimale
-• Buon bilanciamento velocità/qualità
-
-A* (MISPLACED TILES)
-• Euristica: Conta tessere fuori posto
-• Garantisce soluzione ottimale
-• Più semplice ma meno informativa
-
-A* (COMBINED)
-• Combina Manhattan + Misplaced
-• Garantisce soluzione ottimale
-• Migliore euristica, più efficiente
+A* (ALGORITMO A-STAR)
+• Utilizza euristica combinata (Manhattan + Misplaced)
+• Garantisce sempre la soluzione ottimale
+• Eccellente bilanciamento tra velocità e qualità
+• Esplora intelligentemente lo spazio di ricerca
 
 BFS (BREADTH-FIRST SEARCH)
 • Esplora livello per livello
 • Garantisce soluzione ottimale
-• Usa molta memoria
+• Usa molta memoria per stati complessi
+• Affidabile ma può essere lento
 
 GREEDY BEST-FIRST
-• Segue sempre l'euristica migliore
-• Molto veloce
+• Segue sempre l'euristica migliore locale
+• Molto veloce nell'esecuzione
 • NON garantisce ottimalità
+• Buono per soluzioni rapide
 
 QUALE SCEGLIERE?
-• Per ottimalità: A* o BFS
-• Per velocità: Greedy
-• Miglior compromesso: A* Manhattan o Combined
+• Per la migliore soluzione: A*
+• Per garanzia assoluta: BFS
+• Per velocità massima: Greedy
         """
         
         text2 = tk.Text(tab2, wrap="word", font=("Arial", 10), padx=10, pady=10)
@@ -851,5 +841,3 @@ MEMORIA
         text3.insert("1.0", stats_text)
         text3.config(state="disabled")
         text3.pack(fill="both", expand=True)
-        
-        

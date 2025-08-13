@@ -2,7 +2,6 @@
 test.py - Test per confrontare gli algoritmi
 =============================================================
 Esegue test sistematici su tutti gli algoritmi implementati.
-Esporta sempre risultati e grafici automaticamente.
 """
 
 import sys
@@ -119,9 +118,7 @@ class PuzzleTest:
         """
         if algorithms is None:
             algorithms = [
-                'astar_manhattan',
-                'astar_misplaced',
-                'astar_combined',
+                'astar',
                 'bfs',
                 'greedy',
             ]
@@ -198,7 +195,7 @@ class PuzzleTest:
             DataFrame con tutti i risultati
         """
         print("\n" + "=" * 60)
-        print("🚀 AVVIO test COMPLETO")
+        print("🚀 AVVIO TEST COMPLETO")
         print("=" * 60)
         print(f"Configurazione:")
         print(f"  • Puzzle per difficoltà: {n_puzzles}")
@@ -227,7 +224,7 @@ class PuzzleTest:
         final_df = pd.concat(all_results, ignore_index=True)
         
         print("\n" + "=" * 60)
-        print("✅ test COMPLETATO!")
+        print("✅ TEST COMPLETATO!")
         print("=" * 60)
         
         return final_df
@@ -334,7 +331,7 @@ class PuzzleTest:
                 print(f"🎯 Più efficiente: {most_efficient[0]} ({most_efficient[1]['avg_nodes']:.0f} nodi)")
             
             # Algoritmi ottimali
-            optimal_algos = ['astar_manhattan', 'astar_misplaced', 'astar_combined', 'bfs']
+            optimal_algos = ['astar', 'bfs']
             print(f"✅ Algoritmi con garanzia di ottimalità: {', '.join(optimal_algos)}")
         
         return stats
@@ -381,7 +378,7 @@ class PuzzleTest:
                 json.dump(json_stats, f, indent=2, default=str)
             print(f"   ✅ JSON statistiche: {json_file}")
             
-            # 3. Crea report Markdown dettagliato (con grafici inclusi)
+            # 3. Crea report Markdown dettagliato
             md_file = os.path.join(export_dir, f"{base_filename}_report.md")
             self._create_markdown_report(df, stats, md_file, timestamp)
             print(f"   ✅ Report Markdown: {md_file}")
@@ -393,7 +390,7 @@ class PuzzleTest:
     
     def _create_markdown_report(self, df: pd.DataFrame, stats: Dict, 
                                filename: str, timestamp: str):
-        """Crea un report dettagliato in formato Markdown con grafici inclusi."""
+        """Crea un report dettagliato in formato Markdown."""
         with open(filename, 'w', encoding='utf-8') as f:
             f.write("# 🧩 8-Puzzle Test Report\n\n")
             f.write(f"**Data Esecuzione**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -464,19 +461,6 @@ class PuzzleTest:
                 f.write(f"(tempo medio: {fastest[1]['avg_time']:.3f}s)\n")
                 f.write(f"- **🎯 Algoritmo più efficiente**: {most_efficient[0]} ")
                 f.write(f"(nodi esplorati: {most_efficient[1]['avg_nodes']:.0f})\n")
-                
-                # Raccomandazioni
-                f.write("\n### 💡 Raccomandazioni\n\n")
-                
-                optimal_algos = ['astar_manhattan', 'astar_misplaced', 'astar_combined', 'bfs']
-                f.write("- **Per soluzioni ottimali garantite**: ")
-                f.write(f"{', '.join([a for a in optimal_algos if a in valid_stats])}\n")
-                
-                if 'greedy' in valid_stats:
-                    f.write("- **Per velocità massima** (ma senza garanzia di ottimalità): Greedy\n")
-                
-                if 'astar_combined' in valid_stats:
-                    f.write("- **Miglior compromesso generale**: A* Combined\n")
             
             f.write("\n---\n")
             f.write("*Report generato automaticamente dal sistema di test 8-Puzzle*\n")
@@ -498,7 +482,6 @@ Dove N è il numero specificato (default: 10, minimo: 10)
 
 Tutti i risultati vengono automaticamente:
   • Salvati in CSV, JSON e Markdown
-  • Visualizzati in grafici dettagliati
   • Analizzati con statistiche complete
         """
     )
@@ -550,7 +533,7 @@ Tutti i risultati vengono automaticamente:
         
         # Riepilogo finale
         print("\n" + "=" * 60)
-        print("✅ test COMPLETATO CON SUCCESSO!")
+        print("✅ TEST COMPLETATO CON SUCCESSO!")
         print("=" * 60)
         
         print(f"\n📁 Tutti i risultati sono stati salvati in:")
@@ -586,7 +569,7 @@ Tutti i risultati vengono automaticamente:
                 print(f"  • Success rate: {best[1]['success_rate']:.1f}%")
         
         print("\n" + "=" * 60)
-        print("📊 Il report completo con grafici è disponibile in:")
+        print("📊 Il report completo è disponibile in:")
         print(f"   {os.path.join(run_dir, f'test_{timestamp}_report.md')}")
         print("=" * 60)
         

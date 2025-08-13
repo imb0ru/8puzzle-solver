@@ -26,29 +26,20 @@ Il progetto affronta il problema dell'8-puzzle implementando e confrontando dive
 
 | Algoritmo | Tipo | Caratteristiche | Complessità |
 |-----------|------|-----------------|-------------|
+| **A\*** | Informata | Ottimale, euristica combinata avanzata | O(b^d) |
 | **BFS** | Non informata | Trova soluzione ottimale, alta memoria | O(b^d) spazio |
-| **A\*** | Informata | Ottimale con euristica ammissibile | O(b^d) |
 | **Greedy Best-First** | Informata | Veloce ma non ottimale | O(b^d) |
 
-### 🧮 Euristiche utilizzate
+### 🧮 Euristica A* Combinata
 
+L'algoritmo A* utilizza un'**euristica combinata** che integra:
 - **Manhattan Distance**: Somma delle distanze Manhattan di ogni tessera dalla sua posizione obiettivo
 - **Misplaced Tiles**: Numero di tessere in posizione errata
-- **Combined Heuristic**: Combinazione pesata delle euristiche precedenti per massima informatività
 
----
-
-## ⚙️ Componenti del progetto
-
-| Componente | Descrizione |
-|------------|-------------|
-| `prolog/solver.pl` | Base di conoscenza Prolog con algoritmi di ricerca e euristiche |
-| `prolog/heuristics.pl` | Modulo dedicato alle funzioni euristiche |
-| `gui/puzzle_gui.py` | Interfaccia grafica interattiva con animazioni e statistiche |
-| `logic/puzzle_logic.py` | Logica e interfacciamento Python-Prolog |
-| `test/test.py` | Suite di test per confronto prestazioni algoritmi |
-| `docs/` | Documentazione tecnica completa in LaTeX |
-| `results/` | Report di ogni test effettuato |
+La combinazione di queste euristiche garantisce:
+- ✅ **Ammissibilità**: non sovrastima mai il costo reale
+- ✅ **Informatività**: guida efficacemente la ricerca
+- ✅ **Ottimalità**: trova sempre la soluzione migliore
 
 ---
 
@@ -62,8 +53,6 @@ Il progetto affronta il problema dell'8-puzzle implementando e confrontando dive
 ### Ottimizzazioni implementate
 - **Pruning**: Eliminazione mosse che annullano la precedente
 - **Memoization**: Cache delle euristiche calcolate
-- **Incremental heuristic**: Aggiornamento incrementale invece di ricalcolo
-- **Symmetry reduction**: Riconoscimento configurazioni simmetriche
 
 ---
 
@@ -76,6 +65,35 @@ Il progetto affronta il problema dell'8-puzzle implementando e confrontando dive
 - **NumPy** – Operazioni matriciali ottimizzate
 - **Matplotlib + Plotly** – Visualizzazioni interattive
 - **Pandas** – Analisi statistica dei risultati
+
+---
+
+## 📂 Struttura del Progetto
+
+```
+8-puzzle-solver/
+│
+├── app.py                # Entry point principale
+├── requirements.txt      # Dipendenze Python
+├── README.md             # Documentazione
+│
+├── docs/                 # PyDoc, PLDoc e Documentazione progetto
+│
+├── gui/
+│   └── puzzle_gui.py     # Interfaccia grafica Tkinter
+│
+├── logic/
+│   └── puzzle_logic.py   # Logica di business e bridge Python-Prolog
+│
+├── prolog/
+│   ├── solver.pl         # Implementazione algoritmi in Prolog
+│   └── heuristics.pl     # Funzioni euristiche
+│
+├── test/
+│   └── test.py      # Suite di test
+│
+└── results/              # Output benchmark (generata automaticamente)
+```
 
 ---
 
@@ -117,10 +135,22 @@ pip install -r requirements.txt
 ### 🎮 Interfaccia grafica principale
 
 ```bash
+python app.py
+```
+
+Si consiglia per il primo utilizzo di eseguire:
+
+```bash
 python app.py --help
 ```
 
 ### 🧪 Suite di test
+
+```bash
+python test/test.py
+```
+
+Si consiglia per il primo utilizzo di eseguire:
 
 ```bash
 python test/test.py --help
@@ -130,8 +160,8 @@ python test/test.py --help
 
 ## 🎯 Possibili estensioni future
 
-- [ ] Supporto per N-puzzle (15-puzzle, 24-puzzle)
-- [ ] Machine Learning per apprendimento euristiche
+- [ ] Supporto per puzzle NxN generalizzato
+- [ ] Machine Learning per predizione mosse
 
 ---
 

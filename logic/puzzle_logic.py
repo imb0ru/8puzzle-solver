@@ -217,14 +217,12 @@ class PuzzleLogic:
         
         # Mappa algoritmi a predicati Prolog
         algorithm_map = {
-            'astar_manhattan': 'solve_astar_manhattan',
-            'astar_misplaced': 'solve_astar_misplaced',
-            'astar_combined': 'solve_astar_combined',
+            'astar': 'solve_astar',
             'bfs': 'solve_bfs',
             'greedy': 'solve_greedy',
         }
-        
-        predicate = algorithm_map.get(algorithm, 'solve_astar_manhattan')
+
+        predicate = algorithm_map.get(algorithm, 'solve_astar')
         
         try:
             # Pulisci stati precedenti
@@ -430,7 +428,7 @@ class PuzzleLogic:
                            algorithms: List[str] = None) -> Dict:
         """
         Esegue test su più algoritmi.
-        
+
         Args:
             test_states: Lista di stati da testare
             algorithms: Lista di algoritmi (default: tutti)
@@ -439,8 +437,7 @@ class PuzzleLogic:
             Dizionario con risultati del test
         """
         if algorithms is None:
-            algorithms = ['astar_manhattan', 'astar_misplaced',
-                         'astar_combined','bfs', 'greedy']
+            algorithms = ['astar', 'bfs', 'greedy']
         
         results = {algo: {
             'total_time': 0,

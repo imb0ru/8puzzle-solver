@@ -5,10 +5,9 @@
    Questo modulo implementa diverse funzioni euristiche
    per guidare gli algoritmi di ricerca informata.
    
-   Euristiche implementate:
-   - Manhattan Distance
-   - Misplaced Tiles
-   - Combined
+   Nota: Il sistema usa l'euristica combinata
+   che integra Manhattan Distance e Misplaced Tiles per
+   massima efficienza.
    
    ========================================================= */
 
@@ -21,7 +20,6 @@
 % =========================================================
 % MANHATTAN DISTANCE
 % =========================================================
-
 % Calcola la distanza di Manhattan totale
 manhattan_distance(State, Distance) :-
     goal_positions(GoalPos),
@@ -52,7 +50,6 @@ goal_positions([1,2,3,4,5,6,7,8,0]).
 % =========================================================
 % MISPLACED TILES
 % =========================================================
-
 % Conta il numero di tessere fuori posto
 misplaced_tiles(State, Count) :-
     goal_state(Goal),
@@ -73,8 +70,8 @@ goal_state([1,2,3,4,5,6,7,8,0]).
 % =========================================================
 % EURISTICA COMBINATA
 % =========================================================
-
-% Combina più euristiche con pesi
+% Combina Manhattan Distance e Misplaced Tiles per massima informatività
+% mantenendo ammissibilità
 combined_heuristic(State, Value) :-
     manhattan_distance(State, Manhattan),
     misplaced_tiles(State, Misplaced),
@@ -87,31 +84,6 @@ combined_heuristic(State, Value) :-
     ->  Value = Combined
     ;   Value = Manhattan
     ).
-
-% =========================================================
-% EURISTICHE AVANZATE (OPZIONALI)
-% =========================================================
-
-% Pattern database semplificata - usa Manhattan come fallback
-pattern_database(State, Value) :-
-    manhattan_distance(State, Value).
-
-% Walking distance: considera le mosse minime per ogni riga/colonna
-walking_distance(State, Distance) :-
-    % Implementazione semplificata
-    manhattan_distance(State, Distance).
-
-% Last moves heuristic: penalizza mosse che annullano le precedenti
-last_moves_penalty(LastMove, CurrentMove, Penalty) :-
-    (   opposite_moves(LastMove, CurrentMove)
-    ->  Penalty = 2
-    ;   Penalty = 0
-    ).
-
-opposite_moves(up, down).
-opposite_moves(down, up).
-opposite_moves(left, right).
-opposite_moves(right, left).
 
 % =========================================================
 % UTILITÀ PER DEBUG
@@ -131,16 +103,3 @@ print_state(State) :-
 print_tile(0) :- write('   '), !.
 print_tile(N) :- format(' ~w ', [N]).
 
-% Valuta tutte le euristiche per uno stato
-evaluate_all_heuristics(State) :-
-    manhattan_distance(State, Manhattan),
-    misplaced_tiles(State, Misplaced),
-    pattern_database(State, Pattern),
-    combined_heuristic(State, Combined),
-    
-    format('~nEuristiche per lo stato:~n', []),
-    print_state(State),
-    format('Manhattan Distance: ~w~n', [Manhattan]),
-    format('Misplaced Tiles: ~w~n', [Misplaced]),
-    format('Pattern Database: ~w~n', [Pattern]),
-    format('Combined: ~w~n', [Combined]).
