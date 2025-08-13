@@ -1,0 +1,36 @@
+8-PUZZLE ALGORITHM COMPARISON
+==================================================
+Date: 2025-08-13 12:09:53.346852
+Initial State: [4, 1, 5, 6, 7, 3, 0, 2, 8]
+==================================================
+
+A* Manhattan:
+  Time: 0.257s
+  Moves: 20
+  Nodes Explored: 477
+  Optimal: Yes
+
+A* Misplaced:
+  Time: 5.249s
+  Moves: 20
+  Nodes Explored: 2419
+  Optimal: Yes
+
+A* Combined:
+  Time: 0.087s
+  Moves: 20
+  Nodes Explored: 297
+  Optimal: Yes
+
+BFS:
+  Time: 42.937s
+  Moves: 20
+  Nodes Explored: 45366
+  Optimal: Yes
+
+Greedy:
+  Time: 0.036s
+  Moves: 54
+  Nodes Explored: 122
+  Optimal: No
+

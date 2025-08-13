@@ -17,7 +17,9 @@
     solve_greedy/5,
     generate_random_puzzle/2,
     is_solvable/1,
-    cleanup_prolog/0
+    cleanup_prolog/0,
+    % Esporta anche i predicati dinamici per renderli accessibili
+    optimal_cost/1
 ]).
 
 :- use_module('heuristics.pl').
@@ -33,7 +35,7 @@
 % CLEANUP E GESTIONE MEMORIA
 % =========================================================
 
-% Pulisce tutti i predicati dinamici e ferma i thread
+% Pulisce tutti i predicati dinamici
 cleanup_prolog :-
     retractall(stato_visitato(_)),
     retractall(soluzione_memorizzata(_)),
@@ -71,8 +73,10 @@ update_frontier(Size) :-
 
 % Aggiorna costo ottimale trovato
 update_optimal_cost(Cost) :-
-    retract(optimal_cost(OldCost)),
-    NewCost is min(Cost, OldCost),
+    ( retract(optimal_cost(OldCost))
+    -> NewCost is min(Cost, OldCost)
+    ; NewCost = Cost
+    ),
     assert(optimal_cost(NewCost)).
 
 % =========================================================
@@ -279,7 +283,9 @@ solve_bfs(Initial, Path, NodesExplored, NodesFrontier, Time) :-
     init_counters,
     retractall(stato_visitato(_)),
     
-    bfs_search([[Initial]], Path, FinalCost),
+    bfs_search([[Initial]], ReversedPath, FinalCost),
+    % IMPORTANTE: Inverti il percorso perché BFS lo costruisce al contrario
+    reverse(ReversedPath, Path),
     update_optimal_cost(FinalCost),
     
     nodes_explored(NodesExplored),

@@ -90,7 +90,6 @@ class PuzzleBenchmark:
             algorithms = [
                 'astar_manhattan',
                 'astar_misplaced',
-                'astar_linear',
                 'astar_combined',
                 'bfs',
                 'greedy',
@@ -263,12 +262,6 @@ class PuzzleBenchmark:
                            if stat['optimal_rate'] >= 99]  # Considera ottimali se >= 99%
             if optimal_algos:
                 print(f"✅ Ottimali: {', '.join(optimal_algos)}")
-            
-            # Miglior compromesso
-            if 'astar_linear' in stats:
-                linear_stats = stats['astar_linear']
-                print(f"🎖️ Miglior trade-off: A* Linear Conflict")
-                print(f"   (Time: {linear_stats['avg_time']:.3f}s, Nodes: {linear_stats['avg_nodes']:.0f}, Optimal: {linear_stats['optimal_rate']:.1f}%)")
         
         return stats
     
@@ -304,7 +297,6 @@ class PuzzleBenchmark:
         algo_colors = {
             'astar_manhattan': '#2196F3',
             'astar_misplaced': '#4CAF50',
-            'astar_linear': '#FF9800',
             'astar_combined': '#9C27B0',
             'bfs': '#F44336',
             'greedy': '#795548'
@@ -486,13 +478,7 @@ class PuzzleBenchmark:
                                if stat.get('optimal_rate', 0) >= 99]
                 if optimal_algos:
                     f.write(f"- **Algoritmi ottimali**: {', '.join(optimal_algos)}\n")
-                
-                # Raccomandazioni
-                f.write("\n### Raccomandazioni\n\n")
-                f.write("- Per soluzioni **ottimali e veloci**: A* con Linear Conflict o Combined\n")
-                f.write("- Per soluzioni **molto veloci** (non necessariamente ottimali): Greedy\n")
-                f.write("- Per **garanzia di ottimalità**: BFS o qualsiasi variante A*\n")
-                f.write("- Per **bilanciamento prestazioni/qualità**: A* con Manhattan Distance\n")
+            
 
 
 def main():
@@ -519,7 +505,7 @@ def main():
     parser.add_argument(
         '--algorithms', '-a',
         nargs='+',
-        choices=['astar_manhattan', 'astar_misplaced', 'astar_linear',
+        choices=['astar_manhattan', 'astar_misplaced',
                 'astar_combined', 'bfs', 'greedy', 'all'],
         default=['all'],
         help='Algoritmi da testare (default: all)'

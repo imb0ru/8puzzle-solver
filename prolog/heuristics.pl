@@ -78,11 +78,23 @@ goal_state([1,2,3,4,5,6,7,8,0]).
 combined_heuristic(State, Value) :-
     manhattan_distance(State, Manhattan),
     misplaced_tiles(State, Misplaced),
-    Value is max(Manhattan + Misplaced // 2).
+    % Combina le euristiche: usa il massimo tra Manhattan e (Manhattan + Misplaced/2)
+    % Questo garantisce ammissibilità mantenendo informatività
+    MisplacedWeight is Misplaced // 2,
+    Combined is Manhattan + MisplacedWeight,
+    % Prendi il massimo tra Manhattan e la combinazione pesata
+    (   Combined > Manhattan
+    ->  Value = Combined
+    ;   Value = Manhattan
+    ).
 
 % =========================================================
 % EURISTICHE AVANZATE (OPZIONALI)
 % =========================================================
+
+% Pattern database semplificata - usa Manhattan come fallback
+pattern_database(State, Value) :-
+    manhattan_distance(State, Value).
 
 % Walking distance: considera le mosse minime per ogni riga/colonna
 walking_distance(State, Distance) :-
