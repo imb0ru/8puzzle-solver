@@ -1,0 +1,581 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{todonotes}
+\usepackage{algorithmic}
+\usetikzlibrary{shapes,arrows,positioning,calc}
+
+% Configurazione pagina
+\geometry{
+    a4paper,
+    left=3cm,
+    right=3cm,
+    top=3cm,
+    bottom=3cm
+}
+
+% Configurazione header e footer
+\pagestyle{fancy}
+\fancyhf{}
+\rfoot{\thepage}
+\lhead{\leftmark}
+\rhead{Marco Ferrara}
+
+% Configurazione hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={MLog - Sistema Avanzato di Threat Detection},
+    pdfauthor={Marco Ferrara},
+}
+
+% Definizioni teoremi
+\theoremstyle{definition}
+\newtheorem{definizione}{Definizione}[chapter]
+\newtheorem{teorema}{Teorema}[chapter]
+\newtheorem{proposizione}{Proposizione}[chapter]
+
+% Logo università
+\newcommand{\universitylogo}{
+    \begin{center}
+        \Large
+        \textbf{UNIVERSITÀ DEGLI STUDI DI BARI}\\
+        \textbf{ALDO MORO}\\
+        \vspace{2cm}
+    \end{center}
+}
+
+\begin{document}
+
+% Pagina del titolo
+\begin{titlepage}
+    \universitylogo
+    
+    \vspace{3cm}
+    
+    \begin{center}
+        {\Huge \textbf{MLog}}\\
+        \vspace{0.5cm}
+        {\Large Windows EVTX}\\
+        {\Large Threat Detection System}\\
+        \vspace{2cm}
+        
+        {\large Progetto di Ingegneria della Conoscenza}\\
+        \vspace{3cm}
+        
+        \begin{tabular}{ll}
+            \textbf{Studente:} & Marco Ferrara \\
+            \textbf{Matricola:} & 782407 \\
+            \textbf{Email:} & m.ferrara62@studenti.uniba.it \\
+        \end{tabular}
+        
+        \vspace{2cm}
+        
+        \textbf{Anno Accademico:}\\
+        2024-2025\\
+        
+        \vspace{1cm}
+        
+        \textbf{Docente:}\\
+        Prof. Nicola Fanizzi\\
+        
+        \vspace{2cm}
+        
+        \textbf{Repository GitHub:}
+        \url{https://github.com/imb0ru/mlog}
+    \end{center}
+\end{titlepage}
+
+% Indice
+\tableofcontents
+\newpage
+
+% Capitolo 1: Sommario
+\chapter{Sommario}
+
+Il progetto MLog rappresenta un sistema di threat detection che rileva automaticamente minacce di sicurezza nei file Windows Event Log (EVTX). Il sistema integra l'analisi basata sul framework MITRE ATT\&CK con apprendimento supervisionato multi-label, implementando tre degli argomenti principali del corso di Ingegneria della Conoscenza attraverso un'applicazione pratica nel dominio della cybersecurity.
+\vspace{\baselineskip}\\
+La motivazione principale del progetto nasce dalla crescente complessità degli attacchi informatici moderni, che utilizzano tecniche multiple e coordinate per infiltrarsi nei sistemi target. Gli Advanced Persistent Threats (APT) non possono essere efficacemente rilevati attraverso singole signature o pattern isolati, richiedendo invece un approccio che possa identificare sequenze temporali di eventi apparentemente legittimi. MLog affronta questa sfida attraverso un'architettura ibrida che sfrutta sia la precisione del reasoning simbolico che la capacità di generalizzazione del machine learning.
+\vspace{\baselineskip}\\
+Il sistema implementa tre componenti fondamentali dell'ingegneria della conoscenza. La ricerca di soluzioni in spazi di stati viene realizzata attraverso algoritmi di ricerca (BFS, DFS e A*) per l'esplorazione sistematica di sequenze temporali plausibili negli eventi di sicurezza. La rappresentazione e il ragionamento proposizionale utilizzano procedure di inferenza (forward chaining e backward chaining) con basi di conoscenza formali per dedurre la presenza di minacce. L'apprendimento supervisionato applica algoritmi di classificazione multi-label per identificare simultaneamente multiple tattiche MITRE ATT\&CK.
+\vspace{\baselineskip}\\
+L'integrazione con il framework MITRE ATT\&CK fornisce una mappatura sistematica delle tecniche Windows su 12 tattiche principali, garantendo una copertura completa delle minacce note. Questa integrazione avviene automaticamente attraverso il download e il parsing del database MITRE, con generazione dinamica di regole di rilevamento basate sugli indicatori osservabili di ciascuna tecnica.
+\vspace{\baselineskip}\\
+L'architettura modulare del sistema facilita l'estensione e la manutenzione, separando le responsabilità funzionali in componenti distinti ma interconnessi. Il flusso di elaborazione parte dal parsing nativo dei file EVTX, procede attraverso l'estrazione di feature e il reasoning simbolico, integra le predizioni di machine learning multi-label, e culmina nella generazione di report dettagliati con raccomandazioni specifiche per ogni minaccia identificata.
+\vspace{\baselineskip}\\
+Il progetto dimostra come i concetti teorici affrontati nel corso possano essere applicati in un contesto reale, evidenziando l'importanza dell'ingegneria della conoscenza nella cybersecurity moderna.
+
+% Capitolo 2: Architettura del Sistema
+\chapter{Architettura del Sistema}
+
+\section{Panoramica Architetturale}
+
+L'architettura di MLog segue un design modulare che separa le responsabilità funzionali in componenti specializzati. Questa separazione non solo migliora la manutenibilità e testabilità del sistema, ma permette anche l'evoluzione indipendente di ciascun modulo. Il sistema adotta un pattern architetturale a pipeline, dove ogni componente trasforma progressivamente i dati grezzi in informazioni actionable per gli analisti di sicurezza.
+
+Il flusso di elaborazione inizia con l'acquisizione di log da file EVTX binari Windows, il formato nativo per Windows Event Logs. I dati vengono normalizzati in una rappresentazione uniforme che astrae le differenze strutturali, permettendo ai moduli downstream di operare indipendentemente dalle specifiche del formato binario. Questa astrazione è fondamentale per garantire l'estensibilità del sistema a future versioni del formato EVTX senza modifiche architetturali significative.
+
+La comunicazione tra componenti avviene attraverso interfacce ben definite che incapsulano la complessità interna di ciascun modulo. Il modulo di parsing comunica con la knowledge base attraverso predicati logici, mentre il motore di deduzione interagisce con il componente ML attraverso un layer di astrazione che converte predizioni probabilistiche in fatti logici. Questa architettura loosely coupled facilita il testing isolato dei componenti e permette sostituzioni modulari per sperimentazione o ottimizzazione.
+
+\section{Componenti Principali}
+
+Il modulo di Log Parser costituisce il punto di ingresso del sistema, implementando un parser specializzato per file EVTX. Per i file EVTX, il sistema utilizza la libreria python-evtx per decodificare il formato binario e xmltodict per processare il contenuto XML risultante. Il parser estrae informazioni strutturate da ogni evento, inclusi timestamp, Event ID, utente, processo e metadata aggiuntivi. La normalizzazione mappa oltre 50 pattern di eventi Windows a una rappresentazione canonica che preserva la semantica mantenendo l'uniformità strutturale.
+
+La Base di Conoscenza implementa un repository centralizzato per fatti, regole e metadati di sicurezza. Il sistema mantiene tre categorie di regole: regole tradizionali hardcoded che catturano pattern di attacco noti, regole generate automaticamente dall'integrazione MITRE ATT\&CK, e regole apprese dal componente di apprendimento automatico. Ogni regola è annotata con metadati che includono la sorgente, la confidenza, e riferimenti a tecniche MITRE quando applicabile. La base di conoscenza supporta query efficienti attraverso indicizzazione dei predicati e caching delle regole applicabili.
+
+Il Motore di Inferenza orchestra il processo di ragionamento, coordinando le procedure di inferenza forward chaining e backward chaining e l'integrazione delle predizioni dell'apprendimento automatico multi-label. Il forward chaining opera incrementalmente, mantenendo una working memory dei fatti derivati e applicando iterativamente le regole triggerate con propagazione delle confidenze attraverso i pesi delle regole. Il backward chaining viene attivato on-demand per verificare ipotesi specifiche, utilizzando una strategia depth-first con memoization e calcolo probabilistico della confidenza. L'integrazione con l'apprendimento automatico avviene attraverso l'iniezione di predicati speciali che rappresentano predizioni multi-label probabilistiche, permettendo al sistema di combinare evidenze simboliche deterministiche con predizioni statistiche. La gestione delle confidenze utilizza propagazione probabilistica per combinare evidenze simboliche e statistiche, producendo stime di confidenza calibrate per ogni tattica rilevata.
+
+Il componente di Ricerca di Soluzioni in Spazi di Stati implementa gli algoritmi di ricerca per l'esplorazione sistematica dello spazio degli stati. Ogni stato rappresenta una configurazione della base di conoscenza, con transizioni che corrispondono all'applicazione di regole di inferenza. Il sistema supporta ricerca in ampiezza (BFS) per garantire ottimalità, ricerca in profondità (DFS) per efficienza spaziale, e A* con funzione euristica ammissibile per bilanciare ottimalità ed efficienza. L'implementazione include ottimizzazioni come potatura basata su dominanza e parallelizzazione dell'esplorazione.
+
+Il Motore di Apprendimento Supervisionato gestisce la classificazione multi-label delle tattiche MITRE. Il sistema utilizza Random Forest con MultiOutputClassifier per identificare simultaneamente multiple categorie di minaccia. L'estrazione delle caratteristiche analizza finestre temporali di eventi per catturare pattern comportamentali, generando vettori di caratteristiche che includono proprietà temporali, contestuali e statistiche aggregate. L'addestramento avviene su dataset EVTX etichettati con tattiche MITRE.
+
+Il Visualizer genera report comprensivi e visualizzazioni grafiche dei risultati. I report in formato Markdown includono sommario esecutivo, dettagli tecnici dell'analisi, raccomandazioni specifiche per ogni minaccia identificata, e livelli di confidenza. Le visualizzazioni grafiche mostrano timeline degli eventi con livelli di minaccia e distribuzioni degli eventi per analisi temporale.
+
+\section{Integrazione MITRE ATT\&CK}
+
+L'integrazione con il framework MITRE ATT\&CK rappresenta un elemento distintivo del sistema, fornendo una mappatura sistematica tra eventi osservabili e tecniche di attacco standardizzate. Il sistema scarica periodicamente il database MITRE dal repository ufficiale GitHub, parsando il formato JSON per estrarre tecniche rilevanti per piattaforme Windows. Per ogni tecnica, il sistema identifica gli Event ID Windows associati e genera regole di rilevamento automatiche.
+
+La mappatura Event ID to MITRE Technique è implementata attraverso una tabella di corrispondenze che associa specifici Event ID a tecniche MITRE. Ad esempio, l'Event ID 4625 (login fallito) viene mappato alla tecnica T1110 (Brute Force), mentre l'Event ID 4672 (assegnazione privilegi speciali) corrisponde a T1078.003 (Valid Accounts con privilegi elevati). Questa mappatura permette al sistema di contestualizzare eventi di basso livello nel framework tattico di alto livello MITRE.
+
+La generazione automatica di regole trasforma le descrizioni testuali delle tecniche MITRE in regole eseguibili dal motore di inferenza. Il processo analizza i data source e gli indicatori di ciascuna tecnica, identificando pattern osservabili nei log Windows. Le regole generate vengono annotate con il technique ID originale, permettendo la tracciabilità tra detection e framework MITRE. Questo approccio garantisce che il sistema rimanga allineato con l'evoluzione del panorama delle minacce documentato dalla comunità di sicurezza.
+
+% Capitolo 3: Ricerca di Soluzioni in Spazi di Stati
+\chapter{Ricerca di Soluzioni in Spazi di Stati}
+
+\section{Fondamenti Teorici}
+
+La ricerca di soluzioni in spazi di stati costituisce un paradigma fondamentale nell'intelligenza artificiale per la risoluzione sistematica di problemi. Formalmente, uno spazio degli stati è definito come una quintupla $\langle S, A, \gamma, s_0, G \rangle$ dove $S$ rappresenta l'insieme degli stati possibili, $A$ l'insieme delle azioni applicabili, $\gamma: S \times A \rightarrow S$ la funzione di transizione che determina lo stato risultante dall'applicazione di un'azione, $s_0 \in S$ lo stato iniziale, e $G \subseteq S$ l'insieme degli stati obiettivo.
+
+Nel contesto della threat detection, questa formalizzazione assume un significato specifico. Gli stati $S$ rappresentano configurazioni della knowledge base, contenenti l'insieme dei fatti noti e derivati in un dato momento. Le azioni $A$ corrispondono all'applicazione di regole di inferenza che permettono di derivare nuovi fatti. La funzione di transizione $\gamma$ modella il processo deduttivo: data una regola $r$ con premesse soddisfatte in uno stato $s$, l'applicazione di $r$ genera un nuovo stato $s'$ che include la conclusione della regola. Gli stati obiettivo $G$ sono caratterizzati dalla presenza di predicati che indicano minacce di sicurezza.
+
+\begin{definizione}[Branching Factor]
+Il branching factor $b$ di uno spazio degli stati è il numero medio di successori per ogni stato. Nel contesto di MLog, $b$ corrisponde al numero medio di regole applicabili in ogni configurazione della knowledge base.
+\end{definizione}
+
+La complessità della ricerca dipende criticamente dal branching factor e dalla profondità $d$ della soluzione. Per un albero di ricerca uniforme, il numero di nodi a profondità $d$ è $b^d$, determinando sia la complessità temporale che spaziale degli algoritmi di ricerca esaustiva.
+
+\section{Implementazione di BFS}
+
+L'algoritmo Breadth-First Search garantisce completezza e ottimalità per spazi finiti con costi uniformi. L'implementazione in MLog utilizza una coda FIFO per mantenere la frontiera di esplorazione, garantendo che tutti i nodi a profondità $k$ vengano esplorati prima di quelli a profondità $k+1$.
+
+\begin{teorema}[Ottimalità di BFS]
+BFS trova sempre il percorso più breve dallo stato iniziale a uno stato obiettivo, assumendo costi uniformi delle azioni. La complessità temporale è $O(b^d)$ e quella spaziale $O(b^d)$, dove $b$ è il branching factor e $d$ la profondità della soluzione.
+\end{teorema}
+
+L'implementazione mantiene un insieme di stati visitati per evitare l'esplorazione ridondante di stati già incontrati. Questo è particolarmente importante nel contesto della threat detection, dove multiple sequenze di inferenze possono portare allo stesso insieme di fatti derivati. L'hashing degli stati basato sull'insieme di predicati contenuti permette lookup in tempo costante per il controllo di stati duplicati.
+
+La gestione della memoria rappresenta la sfida principale per BFS nel contesto di MLog. Con un branching factor tipico di 10-20 regole applicabili per stato e profondità di ricerca fino a 7, lo spazio richiesto può crescere rapidamente. Il sistema implementa strategie di garbage collection aggressive per stati che non fanno parte di percorsi promettenti, mantenendo solo le informazioni essenziali per la ricostruzione del percorso ottimale.
+
+\section{Implementazione di DFS}
+
+Depth-First Search offre vantaggi significativi in termini di efficienza spaziale, richiedendo memoria proporzionale solo alla profondità massima di ricerca. L'implementazione in MLog utilizza ricorsione con backtracking, sfruttando lo stack di sistema per mantenere implicitamente il percorso corrente.
+
+La strategia depth-first è particolarmente efficace quando esistono soluzioni a profondità moderate e il branching factor è elevato. Nel contesto della threat detection, questo si traduce in scenari dove catene causali relativamente brevi portano all'identificazione di minacce. L'algoritmo esplora completamente un ramo prima di backtrackare, permettendo di trovare rapidamente soluzioni se la scelta iniziale delle regole è fortunata.
+
+Per prevenire ricorsioni infinite in presenza di cicli nello spazio degli stati, l'implementazione mantiene un limite di profondità configurabile. La profondità massima predefinita di 10 livelli garantisce terminazione senza compromettere la completezza pratica per la maggior parte dei casi d'uso.
+
+\section{Implementazione di A*}
+
+L'algoritmo A* combina i vantaggi di ricerca informata con garanzie di ottimalità attraverso l'uso di una funzione euristica ammissibile. La funzione di valutazione $f(n) = g(n) + h(n)$ guida la ricerca verso stati promettenti, dove $g(n)$ rappresenta il costo del percorso dallo stato iniziale e $h(n)$ la stima del costo rimanente verso l'obiettivo.
+
+\begin{definizione}[Euristica Ammissibile]
+Un'euristica $h$ è ammissibile se $h(n) \leq h^*(n)$ per ogni stato $n$, dove $h^*(n)$ è il costo ottimale effettivo da $n$ all'obiettivo più vicino. L'ammissibilità garantisce che A* trovi sempre la soluzione ottimale.
+\end{definizione}
+
+L'euristica implementata in MLog stima il costo rimanente basandosi sul numero minimo di regole necessarie per derivare i predicati obiettivo mancanti, considerando anche le predizioni multi-label dall'apprendimento automatico. Per ogni predicato obiettivo non ancora derivato, l'euristica identifica la regola con peso massimo (confidenza) che potrebbe derivarlo e utilizza $1 - weight$ come stima del costo. La funzione euristica incorpora anche le confidenze delle predizioni ML multi-label per ridurre la stima quando esistono evidenze statistiche favorevoli. La somma di questi costi minimi, pesata dalle confidenze ML disponibili, fornisce una sottostima accurata del costo totale, garantendo l'ammissibilità e migliorando l'efficienza della ricerca informata. Formalmente: $h(n) = \sum_{g \in G \setminus S(n)} \min_{r \in R_g} (1 - w_r) \cdot (1 - c_{ML}(g))$ dove $G$ sono gli obiettivi, $S(n)$ i predicati già derivati, $R_g$ le regole per l'obiettivo $g$, $w_r$ il peso della regola, e $c_{ML}(g)$ la confidenza ML per l'obiettivo $g$.
+
+L'implementazione utilizza una priority queue (heap) per mantenere la frontiera ordinata per valore di $f(n)$. Stati con valutazione inferiore vengono esplorati prioritariamente, dirigendo la ricerca verso percorsi più promettenti. Il sistema mantiene sia un open set (stati da esplorare) che un closed set (stati già esplorati) per garantire che ogni stato venga processato al massimo una volta con il suo costo ottimale.
+
+\section{Ottimizzazioni}
+
+L'efficienza della ricerca viene migliorata attraverso diverse ottimizzazioni algoritmiche e implementative. Il pruning basato su dominanza elimina stati che sono strettamente dominati da altri già esplorati. Uno stato $s_1$ domina $s_2$ se contiene tutti i predicati di $s_2$ con un costo inferiore o uguale. Questa ottimizzazione è particolarmente efficace quando multiple sequenze di regole possono derivare gli stessi fatti con confidenze diverse.
+
+La memorization delle regole applicabili accelera significativamente l'identificazione dei successori di ogni stato. Il sistema mantiene una cache che mappa configurazioni di predicati alle regole triggerate, evitando il ricalcolo costoso del pattern matching. La cache utilizza una strategia LRU con invalidazione basata su timestamp per gestire aggiornamenti dinamici della knowledge base.
+
+L'architettura supporta parallelizzazione multi-livello per ottimizzare le prestazioni. Il parallelismo viene sfruttato sia nell'esplorazione di rami indipendenti dello spazio degli stati che nell'elaborazione delle predizioni multi-label. Un pool di thread worker processa stati dalla frontiera in parallelo, mentre un secondo pool gestisce le predizioni ML simultanee per multiple tattiche. La sincronizzazione avviene attraverso strutture dati concurrent-safe per coordinare l'integrazione tra reasoning simbolico e predizioni statistiche.
+
+Il sistema MLog esegue tutti e tre gli algoritmi simultaneamente per ogni analisi, fornendo una valutazione comprensiva delle catene causali: BFS garantisce soluzioni ottimali esplorando sistematicamente tutti gli stati per livello; DFS offre efficienza spaziale esplorando in profondità con memoria lineare; A* utilizza l'euristica per guidare la ricerca verso soluzioni ottimali con maggiore efficienza. Il sistema seleziona automaticamente il risultato migliore tra i tre algoritmi basandosi sul costo totale della soluzione, combinando le garanzie di ottimalità di BFS, l'efficienza spaziale di DFS e la ricerca guidata di A* per massimizzare l'accuratezza dell'analisi forense.
+
+% Capitolo 4: Rappresentazione e Ragionamento Proposizionale
+\chapter{Rappresentazione e Ragionamento Proposizionale}
+
+\section{Fondamenti di Logica Proposizionale}
+
+La logica proposizionale fornisce il fondamento formale per la rappresentazione della conoscenza e il reasoning automatico in MLog. Un sistema logico proposizionale consiste di un linguaggio formale per esprimere proposizioni, un insieme di assiomi che catturano verità fondamentali del dominio, e regole di inferenza che permettono di derivare nuove verità da quelle esistenti.
+
+Nel contesto della threat detection, le proposizioni atomiche rappresentano eventi osservabili o proprietà del sistema. Ad esempio, $login\_failed(user1)$ rappresenta un tentativo di login fallito per l'utente user1, mentre $privilege\_escalation(admin)$ indica un'escalation di privilegi per l'account admin. Le formule composte esprimono relazioni causali tra eventi, come $(login\_failed(X) \land login\_failed(X) \land login\_failed(X)) \rightarrow brute\_force\_attempt(X)$, che codifica il pattern di rilevamento per tentativi di brute force.
+
+\begin{definizione}[Clausola di Horn]
+Una clausola di Horn è una disgiunzione di letterali con al massimo un letterale positivo, equivalentemente espressa come $(p_1 \land p_2 \land ... \land p_n) \rightarrow q$ dove $p_i$ sono letterali positivi (premesse) e $q$ è un letterale positivo (conclusione).
+\end{definizione}
+
+La restrizione alle clausole di Horn garantisce efficienza computazionale mantenendo sufficiente potere espressivo. Il modus ponens, la regola di inferenza principale utilizzata, afferma che da $p$ e $p \rightarrow q$ si può derivare $q$. Questa semplicità permette implementazioni efficienti del processo di inferenza attraverso forward e backward chaining.
+
+\section{Sistema di Predicati in MLog}
+
+Il sistema di predicati in MLog è progettato per catturare la semantica degli eventi di sicurezza mantenendo la trattabilità computazionale. Ogni predicato ha un nome che identifica il tipo di evento o proprietà e una lista di argomenti che specificano le entità coinvolte. La scelta dell'arità dei predicati bilancia espressività e complessità: predicati unari per proprietà semplici, binari per relazioni, e arità superiore per eventi complessi.
+
+La rappresentazione degli eventi segue una struttura uniforme che facilita il pattern matching durante l'inferenza. Gli argomenti dei predicati possono essere costanti (valori specifici come nomi utente o processi) o variabili (placeholder che possono essere unificati con valori durante il matching). Le variabili sono indicate con lettere maiuscole, permettendo regole generiche che si applicano a multiple istanze.
+
+Il sistema mantiene una distinzione tra predicati osservabili, derivati direttamente dai log, e predicati derivati, inferiti attraverso l'applicazione di regole. Questa distinzione è importante per la tracciabilità delle conclusioni e la generazione di spiegazioni. Ogni predicato derivato mantiene un riferimento alla regola e ai fatti che hanno portato alla sua derivazione.
+
+\section{Forward Chaining}
+
+Il forward chaining implementa una strategia di reasoning data-driven che parte dai fatti osservati e deriva progressivamente nuove conclusioni. L'algoritmo opera sulla chiusura deduttiva della knowledge base, applicando iterativamente tutte le regole le cui premesse sono soddisfatte fino a raggiungere un punto fisso dove nessuna nuova inferenza è possibile.
+
+L'implementazione ottimizza il processo attraverso indicizzazione delle regole per predicato. Invece di verificare tutte le regole per ogni nuovo fatto, il sistema mantiene un indice che mappa predicati alle regole in cui appaiono come premesse.
+
+La gestione della confidenza durante il forward chaining combina le confidenze provenienti da fonti sia simboliche che statistiche. La confidenza di un fatto derivato è calcolata utilizzando un modello ibrido che combina: (1) il prodotto della confidenza della regola e del minimo delle confidenze delle premesse simboliche, e (2) le confidenze delle predizioni multi-label dell'apprendimento automatico attraverso una media pesata. Formalmente: $C_{derived} = \alpha \cdot (C_{rule} \times \min(C_{premises})) + (1-\alpha) \cdot C_{ML}$ dove $\alpha$ bilancia il contributo simbolico e statistico. Questo approccio conservativo ma informato assicura che conclusioni derivate attraverso lunghe catene di reasoning mantengano stime di confidenza calibrate, incorporando sia le confidenze logiche che quelle probabilistiche. Il sistema utilizza tecniche di calibrazione probabilistica per ottimizzare il parametro $\alpha$ su dati di validazione, garantendo stime di confidenza accurate per il processo decisionale in contesti critici.
+
+\section{Backward Chaining}
+
+Il backward chaining implementa una strategia goal-driven che parte dall'obiettivo da dimostrare e lavora ricorsivamente all'indietro per trovare supporto nei fatti osservati. Questo approccio è particolarmente efficiente quando si vuole verificare la presenza di specifiche minacce senza derivare tutti i possibili fatti.
+
+L'algoritmo inizia con un goal da provare e identifica tutte le regole che potrebbero derivarlo. Per ogni regola candidata, tenta di unificare la conclusione della regola con il goal, generando un insieme di sostituzioni per le variabili. Queste sostituzioni vengono applicate alle premesse della regola, generando nuovi subgoal che devono essere provati ricorsivamente.
+
+La terminazione è garantita attraverso il rilevamento di cicli nella catena di subgoal. Il sistema mantiene uno stack degli obiettivi attualmente sotto verifica, fallendo se rileva un tentativo di ri-dimostrare un goal già nello stack. Questa strategia previene loop infiniti anche in presenza di regole mutuamente ricorsive, garantendo che l'algoritmo termini sempre con successo o fallimento.
+
+L'unificazione segue l'algoritmo di Robinson, trovando la sostituzione più generale che rende due termini identici. L'implementazione gestisce correttamente il occur check per prevenire sostituzioni cicliche e supporta unificazione parziale per gestire predicati con arità variabile.
+
+\section{Integrazione delle Regole MITRE}
+
+L'integrazione del framework MITRE ATT\&CK nel sistema di reasoning avviene attraverso la traduzione automatica di tecniche in regole logiche. Ogni tecnica MITRE documentata viene analizzata per estrarre i suoi indicatori osservabili nel contesto Windows, generando regole che mappano pattern di eventi a tecniche specifiche.
+
+Il processo di traduzione identifica prima gli Event ID Windows associati a ciascuna tecnica attraverso la mappatura predefinita nel sistema. Ad esempio, la tecnica T1110 (Brute Force) viene associata all'Event ID 4625 (login fallito). Il sistema genera quindi regole che catturano il pattern comportamentale della tecnica: multiple occorrenze dell'Event ID 4625 per lo stesso utente in una finestra temporale ristretta indicano un possibile tentativo di brute force.
+
+Le regole generate mantengono la tracciabilità con il framework MITRE attraverso annotazioni che includono il technique ID, la tattica associata, e riferimenti alla documentazione originale. Questa tracciabilità permette agli analisti di contestualizzare i detection nel framework strategico più ampio e accedere a informazioni dettagliate su mitigazioni e indicatori aggiuntivi.
+
+La confidenza delle regole MITRE è calibrata basandosi sulla specificità degli indicatori e sulla frequenza di falsi positivi osservati empiricamente. Tecniche con indicatori molto specifici ricevono alta confidenza, mentre pattern più generici che potrebbero corrispondere a comportamenti legittimi ricevono confidenza moderata. Questa calibrazione bilancia sensibilità e specificità del sistema di detection.
+
+% Capitolo 5: Apprendimento Supervisionato
+\chapter{Apprendimento Supervisionato}
+
+\section{Fondamenti di Classificazione Supervisionata}
+
+L'apprendimento supervisionato per classificazione multi-label affronta il problema di assegnare multiple categorie a ogni istanza, una formulazione appropriata per identificare simultaneamente diverse tattiche di minaccia negli eventi di sicurezza. Formalmente, dato uno spazio delle caratteristiche $\mathcal{X} \subseteq \mathbb{R}^d$ e un insieme di categorie $\mathcal{C} = \{c_1, c_2, ..., c_k\}$, l'obiettivo è apprendere una funzione $f: \mathcal{X} \rightarrow \{0,1\}^k$ che mappi ogni istanza a un vettore binario indicante la presenza/assenza di ciascuna categoria.
+
+L'approccio multi-label è particolarmente adatto al dominio della cybersecurity dove un singolo attacco può manifestare simultaneamente multiple tattiche MITRE ATT\&CK. Nel contesto di MLog, il sistema identifica quali delle 12 tattiche principali sono presenti in una sequenza di eventi, permettendo una caratterizzazione completa del comportamento malevolo osservato.
+
+\begin{definizione}[Hamming Loss]
+L'Hamming Loss misura la frazione di etichette incorrettamente predette:
+$HammingLoss(Y, \hat{Y}) = \frac{1}{n \cdot k} \sum_{i=1}^{n} \sum_{j=1}^{k} \mathbb{I}[y_{ij} \neq \hat{y}_{ij}]$
+dove $Y$ rappresenta le etichette vere, $\hat{Y}$ le predizioni, $n$ il numero di istanze e $k$ il numero di etichette.
+\end{definizione}
+
+Il sistema MLog utilizza Random Forest con MultiOutputClassifier, appropriato per problemi di apprendimento supervisionato multi-etichetta. Il modello identifica simultaneamente tutte le tattiche attive in una sequenza, fornendo predizioni binarie indipendenti per ciascuna delle 12 tattiche MITRE ATT\&CK supportate.
+
+\section{Estrazione delle Caratteristiche}
+
+L'estrazione di caratteristiche rappresentative dalle sequenze di eventi costituisce un aspetto critico per l'efficacia dell'apprendimento supervisionato. Il sistema implementa un approccio multi-scala che cattura proprietà a diversi livelli di granularità temporale e semantica.
+
+Le caratteristiche temporali codificano il contesto temporale degli eventi, includendo ora del giorno, giorno della settimana, e posizione relativa nella sequenza. Queste caratteristiche catturano pattern periodici tipici delle attività legittime, permettendo l'identificazione di anomalie che deviano dai comportamenti normali. La ciclicità temporale viene gestita attraverso encoding sinusoidale per preservare la continuità tra valori estremi.
+
+Le feature contestuali analizzano finestre temporali scorrevoli per calcolare statistiche aggregate. Per ogni finestra, il sistema calcola il numero totale di eventi, la diversità degli utenti coinvolti, la frequenza di tipi di eventi specifici come login falliti o creazioni di processi. La dimensione della finestra, calibrata empiricamente a 60 minuti, bilancia la cattura di correlazioni temporali con la necessità di mantenere la località delle informazioni.
+
+Le feature comportamentali catturano pattern di sequenze specifiche. Il sistema identifica subsequence comuni che precedono tipicamente eventi malevoli, come escalation di privilegi seguita da accesso a file sensibili. Queste feature sono estratte attraverso n-gram analysis sulle sequenze di tipi di eventi, con n variabile da 2 a 4 per catturare pattern di diversa complessità.
+
+La normalizzazione delle feature segue un approccio di standardizzazione Z-score per feature numeriche e label encoding per feature categoriche. Il sistema mantiene i parametri di normalizzazione appresi dal training set per applicarli consistentemente durante l'inferenza, garantendo che le distribuzioni delle feature rimangano comparabili.
+
+\section{Architettura del Modello}
+
+L'architettura del classificatore multi-label in MLog utilizza MultiOutputClassifier che incapsula un Random Forest per ogni etichetta. Questo approccio problem transformation decompone il problema multi-label in multiple classificazioni binarie indipendenti, permettendo di sfruttare algoritmi di classificazione standard mantenendo la capacità di predire combinazioni arbitrarie di etichette.
+
+Random Forest offre diversi vantaggi nel contesto della threat detection. La natura ensemble fornisce robustezza contro overfitting, critica data la limitata disponibilità di esempi per alcune tattiche rare. L'interpretabilità attraverso feature importance permette di identificare quali indicatori contribuiscono maggiormente a ciascuna predizione. La capacità di gestire feature eterogenee senza preprocessing complesso semplifica l'integrazione di nuovi tipi di eventi.
+
+Ogni albero nell'ensemble viene costruito su un bootstrap sample del training set, introducendo diversità che migliora la generalizzazione. La selezione random delle feature a ogni split riduce ulteriormente la correlazione tra alberi. Il numero di alberi (100) e la profondità massima vengono configurati per bilanciare accuratezza predittiva e costo computazionale.
+
+La calibrazione delle probabilità predette avviene attraverso Platt scaling, che mappa gli score grezzi dell'ensemble in probabilità calibrate attraverso una funzione sigmoide. I parametri della calibrazione sono appresi su un validation set separato per evitare overfitting. Le probabilità calibrate sono essenziali per l'integrazione con il reasoning simbolico, che richiede stime affidabili delle confidenze.
+
+\section{Training e Ottimizzazione}
+
+Il processo di training affronta diverse sfide specifiche del dominio della sicurezza. Lo sbilanciamento delle classi, con alcune tattiche molto più rare di altre, viene gestito attraverso class weighting che penalizza maggiormente gli errori sulle classi minoritarie. I pesi sono inversamente proporzionali alla frequenza delle classi nel training set, garantendo che il modello non ignori tattiche rare ma critiche.
+
+La selezione delle feature utilizza un approccio di mutual information per identificare le feature più informative per ciascuna tattica. Feature con bassa informazione vengono eliminate per ridurre il rumore e migliorare la generalizzazione. Il processo è iterativo, con rivalutazione dell'importanza dopo ogni eliminazione per catturare dipendenze non lineari.
+
+L'ottimizzazione degli iperparametri segue una strategia di grid search con validazione incrociata. I parametri ottimizzati includono la profondità massima degli alberi (per controllare la complessità), il numero minimo di campioni per split (per prevenire overfitting su pattern spurii), e la frazione di feature considerate a ogni split (per bilanciare diversità e qualità delle decisioni).
+
+La validazione utilizza k-fold cross-validation standard, appropriata per la natura multi-label del problema. Ogni fold mantiene approssimativamente la stessa distribuzione di etichette, garantendo che il modello sia valutato su esempi rappresentativi di tutte le combinazioni di tattiche.
+
+\section{Integrazione con il Sistema Simbolico}
+
+L'integrazione delle predizioni ML nel sistema di reasoning simbolico avviene attraverso la conversione di probabilità in predicati logici pesati. Per ogni tattica con probabilità superiore a una soglia calibrata, il sistema genera un predicato speciale che indica la detection ML di quella tattica.
+
+La soglia di conversione è tattica-specifica, calibrata per bilanciare precision e recall basandosi sulle caratteristiche operative desiderate. Tattiche ad alto impatto come Credential Access utilizzano soglie più basse per massimizzare la sensibilità, mentre tattiche con maggiore probabilità di falsi positivi utilizzano soglie più conservative.
+
+I predicati ML vengono iniettati nella knowledge base con confidenza proporzionale alla probabilità predetta, permettendo al reasoning simbolico di considerare le evidenze probabilistiche nelle sue inferenze. Questo approccio permette al sistema di combinare evidenze probabilistiche con regole deterministiche, sfruttando i punti di forza di entrambi i paradigmi.
+
+Il feedback dal reasoning simbolico viene utilizzato per raffinare il modello ML attraverso active learning. Quando il reasoning identifica errori nelle predizioni ML basandosi su evidenze logiche forti, questi casi vengono marcati per re-training prioritario. Questo loop di feedback migliora progressivamente l'allineamento tra i due componenti del sistema.
+
+\section{Dataset di Training}
+
+Il sistema utilizza il dataset EVTX-ATTACK-SAMPLES come sorgente esclusiva per il training dei modelli di machine learning. Questo dataset fornisce una collezione curata di file Windows Event Log (EVTX) contenenti eventi di sicurezza reali da attacchi simulati utilizzando tecniche del framework MITRE ATT\&CK.
+
+\subsection{Caratteristiche del Dataset}
+
+Il dataset è organizzato gerarchicamente per tattiche MITRE ATT\&CK, con directory dedicate per ciascuna categoria di minaccia:
+
+\begin{itemize}
+\item \textbf{Initial Access}: Eventi di accesso iniziale al sistema target
+\item \textbf{Execution}: Tracce di esecuzione di codice malevolo e payload
+\item \textbf{Persistence}: Meccanismi di persistenza e mantenimento accesso
+\item \textbf{Privilege Escalation}: Escalation di privilegi e bypass controlli
+\item \textbf{Defense Evasion}: Tecniche di evasione di sistemi di sicurezza
+\item \textbf{Credential Access}: Furto e dump di credenziali utente
+\item \textbf{Discovery}: Ricognizione dell'ambiente e network mapping
+\item \textbf{Lateral Movement}: Movimento laterale attraverso la rete
+\item \textbf{Collection}: Raccolta dati sensibili dal sistema compromesso
+\item \textbf{Command \& Control}: Comunicazioni con infrastruttura C2
+\item \textbf{Exfiltration}: Esfiltrazione dati dall'ambiente target
+\item \textbf{Impact}: Azioni distruttive e di disruption dei servizi
+\end{itemize}
+
+\subsection{Qualità e Copertura}
+
+I file EVTX del dataset contengono eventi autentici generati da simulazioni controllate di tecniche di attacco reali. Ogni file rappresenta una specifica tecnica MITRE ATT\&CK, garantendo che i pattern appresi dai modelli di machine learning riflettano comportamenti effettivamente osservabili in scenari di incident response.
+
+La diversità del dataset in termini di tecniche coperte e varianti implementative permette ai modelli di generalizzare efficacemente su attacchi non visti durante il training. La presenza di attacchi che coinvolgono multiple tattiche fornisce esempi essenziali per il training multi-label, fondamentale per la capacità del sistema di identificare campagne di attacco complesse che attraversano multiple fasi della kill chain.
+
+Il formato EVTX nativo garantisce la fedeltà completa degli eventi, preservando tutti i metadati e le informazioni strutturate necessarie per un'analisi forense accurata. Questo aspetto è cruciale per l'estrazione di feature temporali e contestuali utilizzate dal componente di machine learning.
+
+% Capitolo 6: Strumenti Utilizzati
+\chapter{Strumenti Utilizzati}
+
+\section{Linguaggi e Framework}
+
+Python 3.10+ è stato scelto come linguaggio principale per lo sviluppo di MLog per diverse ragioni strategiche. La ricchezza dell'ecosistema Python per data science e machine learning fornisce accesso a librerie mature e ottimizzate per tutti gli aspetti del progetto. L'architettura del sistema sfrutta le capacità di Python per l'integrazione di componenti eterogenei. Il modulo multiprocessing permette parallelizzazione efficiente delle operazioni CPU-intensive come la ricerca nello spazio degli stati. Le async capabilities facilitano l'handling di I/O operations durante il parsing di grandi file di log. Il garbage collector automatico semplifica la gestione della memoria in algoritmi che generano molti stati temporanei.
+
+\section{Librerie per Data Processing}
+
+Il parsing dei file EVTX utilizza python-evtx, una libreria specializzata per la decodifica del formato binario Windows Event Log. La libreria gestisce la complessità del formato proprietario Microsoft, estraendo eventi strutturati con metadati completi. L'integrazione con xmltodict permette la conversione del contenuto XML in strutture dati Python native, semplificando l'estrazione di informazioni specifiche.
+
+Pandas fornisce le strutture dati e gli strumenti per la manipolazione efficiente di dati tabulari. DataFrame viene utilizzato per organizzare sequenze di eventi, permettendo operazioni di filtering, grouping e aggregazione ottimizzate. Le capacità di time series handling di pandas sono particolarmente utili per l'analisi di pattern temporali negli eventi di sicurezza.
+
+NumPy supporta le operazioni numeriche alla base del machine learning, fornendo array multidimensionali efficienti e operazioni vettorizzate. La libreria è essenziale per la rappresentazione delle feature matrix e per le computazioni statistiche durante il training dei modelli.
+
+\section{Stack di Machine Learning}
+
+Scikit-learn costituisce il core del componente di machine learning, fornendo implementazioni ottimizzate di Random Forest e utilities per preprocessing, model selection e evaluation. 
+La scelta di Random Forest come algoritmo principale per la Multi-Label Classification è motivata da diverse caratteristiche ottimali per il dominio della cybersecurity e i requisiti del framework MITRE ATT\&CK:
+
+\begin{enumerate}
+\item \textbf{Robustezza al Rumore}: I log di sicurezza contengono spesso dati inconsistenti o rumorosi; Random Forest mitiga questo attraverso l'aggregazione di decision tree multipli
+\item \textbf{Gestione Features Eterogenee}: Il sistema elabora features temporali, categoriche e numeriche simultaneamente; Random Forest gestisce naturalmente questa eterogeneità senza preprocessing complesso
+\item \textbf{Supporto Multi-Label Nativo}: Combinato con MultiOutputClassifier, Random Forest supporta efficacemente predizioni simultanee su 12 tattiche MITRE
+\item \textbf{Interpretabilità}: Feature importance fornisce insights critici per validazione delle predizioni e comprensione dei pattern di attacco
+\item \textbf{Scalabilità}: Parallelizzazione nativa permette training efficiente su dataset EVTX voluminosi
+\item \textbf{Basso Overfitting}: La natura ensemble riduce il rischio di overfitting su pattern specifici di singoli attacchi
+\end{enumerate}
+
+L'implementazione scikit-learn supporta parallelizzazione multi-core, sfruttando architetture per accelerare training e inferenza. 
+
+Joblib gestisce la serializzazione efficiente dei modelli trained, utilizzando formati binari ottimizzati che preservano la struttura completa degli ensemble. La libreria supporta anche memory mapping per modelli grandi, permettendo loading efficiente senza caricare l'intero modello in memoria.
+
+\section{Visualizzazione e Reporting}
+
+Matplotlib fornisce le capacità di visualizzazione per l'analisi esplorativa e la generazione di report grafici, offrendo controllo sulla generazione di plot e permettendo customizzazione dettagliata di timeline e grafici di analisi. Seaborn viene utilizzato per impostare stili grafici consistenti e professionali attraverso temi predefiniti come "whitegrid".
+
+Pandas facilita la manipolazione e analisi dei dati temporali per la generazione di timeline. La libreria fornisce strutture dati efficienti per raggruppamento e aggregazione temporale, utilizzate per identificare pattern temporali negli eventi di sicurezza.
+
+La generazione di report in formato Markdown permette output human-readable che possono essere facilmente convertiti in altri formati o integrati in sistemi di documentazione. La scelta di Markdown bilancia leggibilità del formato raw con ricchezza di formatting quando renderizzato.
+
+% Capitolo 7: Scelte di Progetto
+\chapter{Scelte di Progetto}
+
+\section{Architettura Modulare}
+
+La decisione di adottare un'architettura modulare è stata guidata da requisiti di manutenibilità, estensibilità e testabilità. La separazione in componenti specializzati permette evoluzione indipendente di ciascun modulo, facilitando aggiornamenti e ottimizzazioni locali senza impatti sistemici. Questa modularità si è rivelata particolarmente vantaggiosa durante lo sviluppo iterativo, permettendo di raffinare singoli componenti basandosi su feedback empirici.
+
+L'interfaccia tra moduli segue principi di loose coupling, con comunicazione attraverso strutture dati ben definite piuttosto che dipendenze dirette. Il parsing module comunica con la knowledge base attraverso predicati standardizzati, astraendo i dettagli del formato EVTX. Il reasoning engine riceve predicati e produce conclusioni, indipendentemente dalla loro origine. Questa astrazione facilita l'estensione a nuove sorgenti di dati o algoritmi di reasoning.
+
+La scelta di Python come linguaggio unificante bilancia efficienza implementativa con produttività di sviluppo. Python permette rapid prototyping e facile integrazione di librerie specializzate. Le parti computazionalmente intensive utilizzano librerie con backend in C/C++, ottenendo efficienza dove necessario senza sacrificare la flessibilità complessiva.
+
+\section{Approccio Ibrido Simbolico-Statistico}
+
+L'integrazione di reasoning simbolico e machine learning rappresenta una scelta progettuale fondamentale che distingue MLog da approcci puramente statistici o rule-based. Questa ibridazione nasce dal riconoscimento che ciascun approccio ha strengths complementari: il reasoning simbolico fornisce spiegabilità e garanzie formali, mentre il ML offre capacità di generalizzazione e adattamento.
+
+Il reasoning simbolico eccelle nell'encoding di conoscenza esperta e nel fornire spiegazioni tracciabili delle conclusioni. La capacità di backward chaining permette di verificare ipotesi specifiche efficientemente, essenziale per incident response mirata.
+
+Il machine learning complementa il reasoning gestendo l'incertezza e identificando pattern complessi non esplicitamente codificati. L'approccio multi-label permette al sistema di riconoscere attacchi che manifestano simultaneamente multiple tattiche, catturando la complessità delle campagne moderne. La capacità di gestire feature ad alta dimensionalità permette l'analisi di correlazioni complesse tra eventi.
+
+L'integrazione avviene a livello di knowledge base, dove predizioni ML vengono convertite in predicati che il reasoning engine può processare. Questa uniformità di rappresentazione permette al sistema di ragionare su evidenze certe e probabilistiche in modo unificato, producendo conclusioni che considerano entrambe le fonti di informazione.
+
+\section{Focus su Windows EVTX}
+
+La decisione di focalizzarsi esclusivamente sul formato EVTX è motivata da considerazioni pratiche e strategiche. Windows domina l'ambiente enterprise, rappresentando la maggioranza dei desktop e una porzione significativa dei server. Gli attaccanti conseguentemente concentrano sforzi su questa piattaforma, rendendo la detection su Windows prioritaria.
+
+Il formato EVTX fornisce logging strutturato e dettagliato di eventi di sicurezza, superiore ai log testuali tradizionali. La ricchezza di metadati disponibili, includendo Event ID standardizzati e parametri strutturati, facilita l'estrazione di informazioni semanticamente rilevanti. La standardizzazione degli Event ID permette la creazione di regole di detection portabili tra diversi ambienti Windows.
+
+L'integrazione nativa con il Windows Security Event Log permette di catturare eventi critici di sicurezza generati dal sistema operativo. Questi eventi forniscono visibilità su autenticazione, autorizzazione, gestione degli account, e accesso a risorse, coprendo la maggior parte dei vettori di attacco comuni.
+
+\section{Scelta di MITRE ATT\&CK}
+
+L'adozione del framework MITRE ATT\&CK come tassonomia di riferimento standardizza la categorizzazione delle minacce e facilita la comunicazione con la comunità di sicurezza. MITRE ATT\&CK è diventato de facto standard nell'industria, adottato da vendor di sicurezza, team di incident response, e ricercatori.
+
+Il framework fornisce una struttura gerarchica che organizza tecniche di attacco in tattiche di alto livello, facilitando l'analisi strategica delle minacce. Questa organizzazione permette di contestualizzare detection di basso livello nel contesto più ampio della kill chain dell'attaccante.
+
+L'aggiornamento continuo del framework da parte della comunità garantisce che il sistema rimanga current con l'evoluzione del threat landscape. Nuove tecniche vengono regolarmente aggiunte basandosi su osservazioni di attacchi reali, fornendo una knowledge base in continua espansione.
+
+La mappatura automatica tra Event ID e tecniche MITRE permette di bridgiare il gap tra indicatori tecnici di basso livello e intelligence strategica di alto livello. Questa mappatura trasforma eventi raw in intelligence actionable che può guidare decisioni di risposta e mitigazione.
+
+% Capitolo 8: Utilizzo dell'Applicazione
+\chapter{Utilizzo dell'Applicazione}
+
+\section{Installazione e Setup}
+
+\subsection{Prerequisiti}
+\begin{itemize}
+\item Python 3.10+ installato sul sistema
+\item Git per clonare il repository
+\item Circa 500MB di spazio libero per il dataset EVTX
+\item Libreria python-evtx per parsing file Windows Event Log
+\end{itemize}
+
+\subsection{Installazione}
+\begin{verbatim}
+# 1. Clona il repository
+git clone https://github.com/imb0ru/mlog.git
+cd mlog
+
+# 2. Installa le dipendenze
+pip install -r requirements.txt
+
+# 3. Verifica installazione
+python main.py --help
+\end{verbatim}
+
+\section{Comandi Principali}
+
+\subsection{Analisi di File EVTX}
+Il comando principale per analizzare file Windows Event Log:
+
+\begin{verbatim}
+python main.py --file PATH_TO_EVTX
+\end{verbatim}
+
+Formato supportato:
+\begin{itemize}
+\item \textbf{Windows Event Logs}: \texttt{.evtx} (formato binario nativo)
+\end{itemize}
+
+Esempio:
+\begin{verbatim}
+python main.py --file data/evtx-attack-samples/Credential_Access/
+                     credaccess_mimilove_lsass_read.evtx
+\end{verbatim}
+
+\subsection{Esplorazione Dataset}
+Per visualizzare i file EVTX disponibili nel dataset:
+
+\begin{verbatim}
+python main.py --list-datasets
+\end{verbatim}
+
+Questo comando mostra tutti i file EVTX organizzati per tattica MITRE ATT\&CK.
+
+\subsection{Integrazione MITRE ATT\&CK}
+Comandi per interagire con il framework MITRE ATT\&CK:
+
+\begin{verbatim}
+# Info dettagliate su tecnica specifica
+python main.py --mitre-info T1110
+
+# Ricerca tecniche per keyword
+python main.py --mitre-search "credential"
+
+# Statistiche integrazione MITRE
+python main.py --mitre-stats
+
+# Aggiorna database MITRE da remoto
+python main.py --refresh-mitre
+\end{verbatim}
+
+\section{Opzioni di Configurazione}
+
+\subsection{Parametri Globali}
+\begin{verbatim}
+--output DIR             # Directory output (default: reports/)
+--config PROFILE         # Profilo configurazione (default: default)
+--verbose                # Output dettagliato debugging
+\end{verbatim}
+
+\subsection{Esempi d'Uso Completi}
+
+\textbf{Analisi file EVTX con output personalizzato:}
+\begin{verbatim}
+python main.py --file data/evtx-attack-samples/Execution/
+               exec_powershell_cmdline.evtx 
+               --output ./my_reports --verbose
+\end{verbatim}
+
+\textbf{Esplorazione dataset EVTX disponibili:}
+\begin{verbatim}
+python main.py --list-datasets
+\end{verbatim}
+
+\textbf{Ricerca e analisi tecnica MITRE:}
+\begin{verbatim}
+python main.py --mitre-search "brute force"
+python main.py --mitre-info T1110
+python main.py --file data/evtx-attack-samples/Initial_Access/
+               initialaccess_bruteforce_win_security_4625.evtx
+\end{verbatim}
+
+\section{Output e Report}
+
+Il sistema genera automaticamente report strutturati in formato Markdown nella directory \texttt{reports/} con:
+
+\begin{itemize}
+\item \textbf{Executive Summary}: Valutazione risk complessivo
+\item \textbf{Threat Analysis}: Identificazione tattiche MITRE rilevate
+\item \textbf{Causal Chains}: Sequenze temporali di eventi correlati
+\item \textbf{Recommendations}: Azioni prioritizzate per mitigazione
+\item \textbf{Technical Details}: Trace completa del reasoning simbolico
+\end{itemize}
+
+\section{Tattiche MITRE ATT\&CK Supportate}
+
+Il sistema supporta identificazione automatica di 12 tattiche principali:
+
+\begin{verbatim}
+Initial Access           Execution                Persistence          
+Privilege Escalation     Defense Evasion          Credential Access    
+Discovery                Lateral Movement         Collection           
+Command & Control        Exfiltration             Impact               
+\end{verbatim}
+
+L'integrazione include mappatura automatica delle tecniche Windows specifiche su Event ID, con aggiornamento dinamico del database MITRE per mantenere copertura aggiornata delle minacce emergenti.
+
+% Capitolo 9: Valutazione e Risultati
+\chapter{Valutazione e Risultati}
+
+
+% Capitolo 10: Conclusioni
+\chapter{Conclusioni}
+
+
+% Appendice A: Documentazione Codice
+\appendix
+\chapter{Documentazione Codice}
+
+La documentazione completa del codice sorgente del sistema MLog è disponibile in formato HTML nella directory \texttt{docs/pydoc/}. La documentazione è stata generata automaticamente con \textbf{pydoc} a partire dai docstring presenti nel codice sorgente e copre tutti gli 8 moduli principali del sistema (main, log\_parser, knowledge\_base, state\_space, deduction\_engine, supervised\_learning, visualizer, utils).
+
+Per accedere alla documentazione aprire uno qualsiasi dei file \texttt{.html} nella directory \texttt{docs/pydoc/} in un browser web. Si consiglia di iniziare da \texttt{main.html} per una panoramica del sistema.
+
+\end{document}
