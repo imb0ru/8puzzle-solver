@@ -1,0 +1,373 @@
+
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{xcolor}
+\usetikzlibrary{shapes,arrows,positioning,calc,automata}
+
+% Configurazione pagina
+\geometry{
+    a4paper,
+    left=3cm,
+    right=3cm,
+    top=3cm,
+    bottom=3cm
+}
+
+% Configurazione header e footer
+\pagestyle{fancy}
+\fancyhf{}
+\rfoot{\thepage}
+\lhead{\leftmark}
+\rhead{Marco Ferrara}
+
+% Configurazione hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={8-Puzzle AI Solver - Sistema di Risoluzione con Intelligenza Artificiale},
+    pdfauthor={Marco Ferrara},
+}
+
+% Definizioni teoremi
+\theoremstyle{definition}
+\newtheorem{definizione}{Definizione}[chapter]
+\newtheorem{teorema}{Teorema}[chapter]
+\newtheorem{proposizione}{Proposizione}[chapter]
+\newtheorem{lemma}{Lemma}[chapter]
+\newtheorem{corollario}{Corollario}[chapter]
+
+% Configurazione listings per codice
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    captionpos=b
+}
+
+% Logo università
+\newcommand{\universitylogo}{
+    \begin{center}
+        \Large
+        \textbf{UNIVERSITÀ DEGLI STUDI DI BARI}\\
+        \textbf{ALDO MORO}\\
+        \vspace{2cm}
+    \end{center}
+}
+
+\begin{document}
+
+% Pagina del titolo
+\begin{titlepage}
+    \universitylogo
+    
+    
+    \begin{center}
+        {\Huge \textbf{8-Puzzle Solver}}\\
+        \vspace{0.5cm}
+        
+        {\large Progetto di Ingegneria della Conoscenza}\\
+        \vspace{2cm}
+        
+        \begin{tabular}{ll}
+            \textbf{Studente:} & Marco Ferrara \\
+            \textbf{Matricola:} & 782407 \\
+            \textbf{Email:} & m.ferrara62@studenti.uniba.it \\
+        \end{tabular}
+        
+        \vspace{2cm}
+        
+        \textbf{Anno Accademico:}\\
+        2024-2025\\
+        
+        \vspace{1cm}
+        
+        \textbf{Docente:}\\
+        Prof. Nicola Fanizzi\\
+        
+        \vspace{2cm}
+        
+        \textbf{Repository GitHub:}\\
+        \url{https://github.com/imb0ru/8puzzle-solver}
+    \end{center}
+\end{titlepage}
+
+% Indice
+\tableofcontents
+\newpage
+
+% Capitolo 1: Introduzione
+\chapter{Introduzione}
+
+\section{Il Problema dell'8-Puzzle}
+
+L'8-puzzle rappresenta uno dei problemi classici nell'ambito dell'Intelligenza Artificiale e dell'Ingegneria della Conoscenza. Questo rompicapo a scorrimento, inventato nel 1874 da Noyes Palmer Chapman, consiste in una griglia 3×3 contenente otto tessere numerate da 1 a 8 e uno spazio vuoto. L'obiettivo è riordinare le tessere dalla configurazione iniziale a quella finale attraverso una sequenza di mosse che spostano le tessere adiacenti nello spazio vuoto.
+
+La semplicità apparente del problema nasconde una complessità computazionale significativa. Lo spazio degli stati dell'8-puzzle contiene $\frac{9!}{2} = 181.440$ configurazioni raggiungibili, divise in due classi di equivalenza basate sulla parità delle inversioni. Questa proprietà matematica determina la risolvibilità di una configurazione: solo le configurazioni con un numero pari di inversioni possono essere trasformate nello stato obiettivo attraverso mosse legali.
+
+Il problema dell'8-puzzle si presta particolarmente bene come caso di studio per l'Ingegneria della Conoscenza per diverse ragioni. Prima di tutto, la sua formulazione intuitiva permette di concentrarsi sugli aspetti algoritmici senza la complessità di domini specialistici. Inoltre, la dimensione limitata ma non banale dello spazio degli stati permette sperimentazione e validazione empirica degli algoritmi. La presenza di una metrica naturale (distanza dallo stato obiettivo) facilita lo sviluppo di euristiche ammissibili. Infine, l'esistenza di soluzioni ottimali note per molte configurazioni permette la valutazione oggettiva delle prestazioni algoritmiche.
+
+\section{Obiettivi del Progetto}
+
+Il progetto si propone di realizzare un sistema completo per la risoluzione automatica dell'8-puzzle. L'obiettivo principale è dimostrare come i concetti teorici dell'Ingegneria della Conoscenza possano essere applicati efficacemente a un problema concreto, evidenziando le caratteristiche distintive di ciascun approccio algoritmico.
+
+Gli obiettivi specifici del progetto includono:
+
+\begin{enumerate}
+    \item \textbf{Implementazione di algoritmi di ricerca multipli}: Realizzare versioni ottimizzate di A*, BFS e Greedy Best-First Search, permettendo un confronto diretto delle loro prestazioni in termini di ottimalità, completezza ed efficienza computazionale.
+    
+    \item \textbf{Sviluppo di euristiche ammissibili}: Progettare e implementare funzioni euristiche che guidino efficacemente la ricerca mantenendo la garanzia di trovare soluzioni ottimali. L'euristica combinata sviluppata integra Manhattan Distance e Misplaced Tiles per massimizzare l'informatività.
+    
+    \item \textbf{Integrazione Python-Prolog}: Realizzare un'architettura ibrida che combini la potenza espressiva del paradigma logico di Prolog con la versatilità e l'ecosistema di Python, dimostrando l'efficacia dell'integrazione di paradigmi diversi.
+    
+    \item \textbf{Interfaccia grafica interattiva}: Sviluppare una GUI intuitiva che permetta la visualizzazione del processo risolutivo, facilitando la comprensione degli algoritmi e l'analisi comparativa delle loro prestazioni.
+    
+    \item \textbf{Sistema di testing sistematico}: Implementare un framework di test automatizzato per valutare empiricamente le prestazioni degli algoritmi su diverse classi di difficoltà, generando statistiche dettagliate e report comparativi.
+\end{enumerate}
+
+\section{Struttura del Documento}
+
+Il presente documento è organizzato per fornire una visione completa del sistema sviluppato, partendo dai fondamenti teorici fino ai dettagli implementativi e ai risultati sperimentali.
+
+Il Capitolo 2 presenta l'architettura generale del sistema, descrivendo la struttura modulare adottata e le interazioni tra i componenti principali. Viene discussa la scelta dell'architettura ibrida Python-Prolog e i vantaggi che questa porta in termini di espressività e efficienza.
+
+Il Capitolo 3 approfondisce i fondamenti teorici degli algoritmi di ricerca implementati, fornendo le definizioni formali e le analisi di complessità. Particolare attenzione è dedicata alle proprietà di completezza, ottimalità e complessità computazionale di ciascun algoritmo.
+
+Il Capitolo 4 si concentra sulle funzioni euristiche, elemento cruciale per l'efficienza degli algoritmi informati. Viene presentata l'euristica combinata sviluppata e dimostrata la sua ammissibilità, garantendo l'ottimalità delle soluzioni trovate da A*.
+
+Il Capitolo 5 descrive l'implementazione in Prolog del motore di ricerca, evidenziando come il paradigma logico si presti naturalmente alla rappresentazione di stati e transizioni. Vengono discusse le ottimizzazioni implementate per migliorare l'efficienza.
+
+Il Capitolo 6 presenta l'integrazione Python-Prolog attraverso pyswip, descrivendo il protocollo di comunicazione bidirezionale e la gestione della conversione tra rappresentazioni diverse dello stato del puzzle.
+
+Il Capitolo 7 illustra l'interfaccia grafica sviluppata con Tkinter, mostrando come la visualizzazione interattiva faciliti la comprensione degli algoritmi e permetta l'analisi comparativa delle prestazioni.
+
+Il Capitolo 8 presenta i risultati sperimentali ottenuti attraverso test sistematici su diverse classi di difficoltà, fornendo un'analisi statistica dettagliata delle prestazioni di ciascun algoritmo.
+
+Il Capitolo 9 conclude il documento con una discussione dei risultati ottenuti, delle lezioni apprese e delle possibili estensioni future del sistema.
+
+% Capitolo 2: Architettura del Sistema
+\chapter{Architettura del Sistema}
+
+\section{Panoramica Architetturale}
+
+L'architettura del sistema 8-Puzzle AI Solver segue un design modulare che separa le responsabilità funzionali in componenti specializzati, facilitando manutenibilità, estensibilità e testing. Il sistema adotta un'architettura ibrida che integra il paradigma logico di Prolog per il motore di ricerca con Python per l'orchestrazione, l'interfaccia utente e l'analisi dei dati.
+
+La scelta di un'architettura ibrida è motivata dai vantaggi complementari dei due linguaggi. Prolog eccelle nella rappresentazione dichiarativa di problemi di ricerca, con il suo motore di unificazione e backtracking nativo che semplifica l'implementazione di algoritmi di ricerca. Python fornisce un ecosistema ricco per GUI, visualizzazione dati e integrazione di sistema, oltre a facilitare il testing e la distribuzione dell'applicazione.
+
+Il flusso di elaborazione segue un pattern request-response dove Python gestisce l'interazione con l'utente e prepara le richieste di risoluzione, Prolog esegue la ricerca nello spazio degli stati e restituisce il percorso soluzione, e Python elabora i risultati per visualizzazione e analisi. Questa separazione permette di sfruttare i punti di forza di ciascun linguaggio mantenendo un'interfaccia pulita tra i componenti.
+
+\section{Componenti Principali}
+
+\subsection{Entry Point e Orchestrazione (app.py)}
+
+Il modulo principale \texttt{app.py} costituisce il punto di ingresso dell'applicazione e orchestra l'inizializzazione dei componenti. La classe \texttt{EightPuzzleApp} gestisce il ciclo di vita dell'applicazione, verificando le dipendenze, inizializzando la GUI e coordinando la comunicazione tra i moduli.
+
+Il sistema di verifica delle dipendenze controlla la presenza e la corretta configurazione di Python 3.9+, SWI-Prolog e pyswip. Questa verifica preventiva garantisce che l'ambiente di esecuzione sia correttamente configurato, prevenendo errori runtime difficili da diagnosticare. Il sistema fornisce messaggi diagnostici dettagliati in caso di problemi di configurazione.
+
+\subsection{Logica di Gioco (logic/puzzle\_logic.py)}
+
+Il modulo \texttt{PuzzleLogic} implementa la logica di gioco del puzzle e gestisce l'interfacciamento con Prolog. Questo componente astrae la complessità della comunicazione inter-linguaggio, fornendo un'API Python pulita per le operazioni sul puzzle.
+
+Le responsabilità principali includono la generazione di puzzle casuali con difficoltà controllata, la validazione della risolvibilità attraverso il conteggio delle inversioni, la conversione tra rappresentazioni Python e Prolog degli stati, e l'invocazione degli algoritmi di ricerca in Prolog con gestione degli errori. Il modulo implementa anche il calcolo delle euristiche in Python per validazione e testing.
+
+\subsection{Motore di Ricerca Prolog (prolog/solver.pl)}
+
+Il cuore algoritmico del sistema risiede nel modulo Prolog \texttt{solver.pl}, che implementa i tre algoritmi di ricerca principali. La rappresentazione dello stato come lista facilita le operazioni di manipolazione e confronto, mentre il backtracking nativo di Prolog semplifica l'implementazione della ricerca.
+
+L'implementazione di A* utilizza una lista ordinata come priority queue, mantenendo i nodi ordinati per f-score. BFS implementa una coda FIFO attraverso append ricorsivi, garantendo esplorazione per livelli. Greedy Best-First ordina i nodi solo per valore euristico, privilegiando velocità su ottimalità.
+
+\subsection{Modulo Euristiche (prolog/heuristics.pl)}
+
+Il modulo delle euristiche implementa le funzioni di valutazione utilizzate dagli algoritmi informati. La Manhattan Distance calcola la somma delle distanze di ogni tessera dalla sua posizione obiettivo. Misplaced Tiles conta il numero di tessere fuori posto. L'euristica combinata integra entrambe le metriche con pesi calibrati empiricamente.
+
+L'implementazione sfrutta la ricorsione tail-optimized di Prolog per efficienza, utilizzando accumulatori per evitare stack overflow su stati complessi. Le euristiche sono provabilmente ammissibili, garantendo che A* trovi sempre la soluzione ottimale.
+
+\subsection{Interfaccia Grafica (gui/puzzle\_gui.py)}
+
+L'interfaccia grafica, realizzata con Tkinter e CustomTkinter, fornisce un'esperienza utente moderna e intuitiva. Il design segue principi di usabilità con feedback visivo immediato e controlli raggruppati logicamente.
+
+La visualizzazione del puzzle utilizza un Canvas per rendering efficiente delle tessere con animazioni fluide. Il pannello di controllo permette selezione dell'algoritmo, configurazione della velocità di animazione e generazione di puzzle casuali. Il pannello delle statistiche mostra in tempo reale metriche di performance come nodi esplorati, tempo di esecuzione e lunghezza del percorso.
+
+\subsection{Sistema di Testing (test/test.py)}
+
+Il framework di testing automatizzato permette valutazione sistematica delle prestazioni algoritmiche. Il sistema genera dataset di puzzle con difficoltà controllata (Easy, Medium, Hard, Mixed) ed esegue test comparativi tra tutti gli algoritmi.
+
+Le metriche raccolte includono tempo di esecuzione, numero di mosse della soluzione, nodi esplorati e memoria utilizzata. I risultati vengono aggregati e analizzati statisticamente, generando report in formato CSV per analisi dettagliata, JSON per integrazione programmatica, e Markdown per documentazione human-readable.
+
+\section{Flusso di Esecuzione}
+
+Il flusso di esecuzione tipico segue una sequenza ben definita di operazioni:
+
+\begin{enumerate}
+    \item \textbf{Inizializzazione}: L'applicazione verifica le dipendenze, carica il motore Prolog e inizializza la GUI.
+    
+    \item \textbf{Configurazione Puzzle}: L'utente configura lo stato iniziale attraverso generazione casuale, input manuale o preset predefiniti.
+    
+    \item \textbf{Selezione Algoritmo}: L'utente seleziona l'algoritmo di ricerca desiderato tra A*, BFS e Greedy.
+    
+    \item \textbf{Invocazione Ricerca}: Python converte lo stato in formato Prolog e invoca il predicato di ricerca appropriato.
+    
+    \item \textbf{Esecuzione Ricerca}: Prolog esplora lo spazio degli stati secondo l'algoritmo selezionato, mantenendo statistiche di esecuzione.
+    
+    \item \textbf{Restituzione Risultati}: Il percorso soluzione e le metriche vengono restituiti a Python per elaborazione.
+    
+    \item \textbf{Visualizzazione}: La GUI anima la soluzione mostrando ogni mossa con feedback visivo e aggiornamento delle statistiche.
+\end{enumerate}
+
+\section{Gestione degli Stati e Transizioni}
+
+La rappresentazione degli stati utilizza una lista di 9 elementi dove ciascun elemento rappresenta il contenuto di una posizione nella griglia 3×3. Lo zero rappresenta lo spazio vuoto. Questa rappresentazione lineare semplifica le operazioni di confronto e hashing.
+
+Le transizioni tra stati corrispondono a mosse valide del puzzle. Una mossa è valida se sposta una tessera adiacente (non diagonale) nello spazio vuoto. Il sistema genera dinamicamente i successori di ogni stato identificando la posizione dello spazio vuoto e applicando le mosse valide.
+
+La validazione della risolvibilità sfrutta la teoria matematica dell'8-puzzle. Il conteggio delle inversioni determina la parità della configurazione. Solo configurazioni con parità pari sono risolvibili, permettendo di evitare ricerche inutili su configurazioni impossibili.
+
+% Capitolo 3: Algoritmi di Ricerca
+\chapter{Algoritmi di Ricerca}
+
+\section{Fondamenti Teorici}
+
+La ricerca in spazi di stati costituisce un paradigma fondamentale nell'Intelligenza Artificiale per la risoluzione sistematica di problemi. Nel contesto dell'8-puzzle, lo spazio degli stati può essere formalizzato come un grafo $G = (V, E)$ dove $V$ rappresenta l'insieme delle configurazioni valide del puzzle e $E$ l'insieme delle transizioni legali tra configurazioni.
+
+\begin{definizione}[Spazio degli Stati dell'8-Puzzle]
+Lo spazio degli stati dell'8-puzzle è definito dalla quintupla $\langle S, A, T, s_0, G \rangle$ dove:
+\begin{itemize}
+    \item $S = \{\text{permutazioni di } \{0,1,2,3,4,5,6,7,8\}\}$ con $|S| = 9! = 362.880$
+    \item $A = \{\text{UP, DOWN, LEFT, RIGHT}\}$ rappresenta le azioni possibili
+    \item $T: S \times A \rightarrow S$ è la funzione di transizione
+    \item $s_0 \in S$ è lo stato iniziale
+    \item $G = \{[1,2,3,4,5,6,7,8,0]\}$ è l'insieme degli stati obiettivo
+\end{itemize}
+\end{definizione}
+
+La peculiarità dell'8-puzzle è che lo spazio degli stati è partizionato in due componenti connesse disgiunte di uguale dimensione. La risolvibilità di una configurazione dipende dalla sua appartenenza alla stessa componente dello stato obiettivo, determinata dalla parità del numero di inversioni.
+
+\begin{teorema}[Risolvibilità dell'8-Puzzle]
+Una configurazione dell'8-puzzle è risolvibile se e solo se il numero di inversioni nella sua rappresentazione lineare è pari, dove un'inversione è una coppia $(i,j)$ tale che $i < j$ ma $\text{tile}[i] > \text{tile}[j]$ (escludendo lo spazio vuoto).
+\end{teorema}
+
+\section{A* con Euristica Combinata}
+
+L'algoritmo A* rappresenta il gold standard per la ricerca ottimale in spazi di stati con costi non negativi. La sua efficacia deriva dalla combinazione di ricerca best-first con una funzione di valutazione che stima il costo totale del percorso attraverso ogni nodo.
+
+\subsection{Formulazione Algoritmica}
+
+A* utilizza una funzione di valutazione $f(n) = g(n) + h(n)$ dove $g(n)$ rappresenta il costo del percorso dallo stato iniziale al nodo $n$ e $h(n)$ è la stima euristica del costo dal nodo $n$ all'obiettivo. L'algoritmo mantiene una frontiera (open list) ordinata per valore crescente di $f(n)$.
+
+\begin{algorithm}
+\caption{Algoritmo A* per l'8-Puzzle}
+\begin{algorithmic}
+\STATE \textbf{function} A-STAR(initial, goal)
+\STATE open\_list $\leftarrow$ \{initial\}
+\STATE closed\_list $\leftarrow$ $\emptyset$
+\STATE g[initial] $\leftarrow$ 0
+\STATE f[initial] $\leftarrow$ h(initial)
+\WHILE{open\_list $\neq \emptyset$}
+    \STATE current $\leftarrow$ \text{extract-min}(open\_list, f)
+    \IF{current = goal}
+        \RETURN reconstruct\_path(current)
+    \ENDIF
+    \STATE closed\_list $\leftarrow$ closed\_list $\cup$ \{current\}
+    \FOR{successor \textbf{in} expand(current)}
+        \IF{successor $\in$ closed\_list}
+            \STATE \textbf{continue}
+        \ENDIF
+        \STATE tentative\_g $\leftarrow$ g[current] + 1
+        \IF{successor $\notin$ open\_list \textbf{or} tentative\_g $<$ g[successor]}
+            \STATE g[successor] $\leftarrow$ tentative\_g
+            \STATE f[successor] $\leftarrow$ g[successor] + h(successor)
+            \IF{successor $\notin$ open\_list}
+                \STATE open\_list $\leftarrow$ open\_list $\cup$ \{successor\}
+            \ENDIF
+        \ENDIF
+    \ENDFOR
+\ENDWHILE
+\RETURN failure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Proprietà Teoriche}
+
+\begin{teorema}[Ottimalità di A*]
+Se l'euristica $h$ è ammissibile (mai sovrastima il costo reale) e consistente (soddisfa la disuguaglianza triangolare), A* trova sempre il percorso ottimale se esiste.
+\end{teorema}
+
+La consistenza dell'euristica garantisce inoltre che A* non riespanda nodi già visitati, migliorando l'efficienza. Nel nostro sistema, l'euristica combinata soddisfa entrambe le proprietà, garantendo ottimalità con esplorazione efficiente.
+
+\section{Breadth-First Search (BFS)}
+
+BFS garantisce di trovare la soluzione ottimale esplorando sistematicamente tutti i nodi per livello di profondità. Sebbene non utilizzi euristiche, la sua completezza e ottimalità lo rendono un benchmark importante.
+
+\subsection{Caratteristiche Algoritmiche}
+
+BFS esplora lo spazio degli stati livello per livello, garantendo che tutti i nodi a distanza $k$ vengano esplorati prima di quelli a distanza $k+1$. Questa strategia assicura che la prima soluzione trovata sia ottimale in termini di numero di mosse.
+
+La complessità temporale è $O(b^d)$ dove $b$ è il branching factor (massimo 4 per l'8-puzzle) e $d$ la profondità della soluzione. La complessità spaziale è anch'essa $O(b^d)$, rappresentando il principale limite dell'algoritmo per problemi con soluzioni profonde.
+
+\subsection{Ottimizzazioni Implementate}
+
+L'implementazione ottimizza BFS attraverso:
+
+\begin{itemize}
+    \item \textbf{Eliminazione stati duplicati}: Mantenimento di un insieme di stati visitati per evitare riesplorazione
+    \item \textbf{Generazione lazy dei successori}: I successori vengono generati solo quando necessario
+    \item \textbf{Rappresentazione compatta degli stati}: Uso di liste Prolog per minimizzare l'overhead di memoria
+\end{itemize}
+
+\section{Greedy Best-First Search}
+
+Greedy Best-First rappresenta l'approccio opposto, privilegiando velocità su ottimalità. L'algoritmo seleziona sempre il nodo che sembra più vicino all'obiettivo secondo l'euristica, senza considerare il costo del percorso già percorso.
+
+\subsection{Trade-off Velocità-Ottimalità}
+
+Greedy può trovare soluzioni molto rapidamente quando l'euristica è accurata, ma non garantisce ottimalità. Nel contesto dell'8-puzzle, questo si traduce in soluzioni trovate con significativamente meno nodi esplorati ma con percorsi potenzialmente più lunghi.
+
+\section{Analisi Comparativa}
+
+La tabella seguente riassume le caratteristiche principali degli algoritmi implementati:
+
+\begin{table}[H]
+\centering
+\caption{Confronto delle proprietà degli algoritmi}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Algoritmo} & \textbf{Completo} & \textbf{Ottimale} & \textbf{Tempo} & \textbf{Spazio} & \textbf{Uso Euristica} \\
+\hline
+A* & Sì & Sì & $O(b^d)$ & $O(b^d)$ & Sì (ammissibile) \\
+BFS & Sì & Sì & $O(b^d)$ & $O(b^d)$ & No \\
+Greedy & Sì* & No & $O(b^m)$ & $O(b^m)$ & Sì (qualsiasi) \\
+\hline
+\end{tabular}
+\end{table}
+
+*Completo per spazi finiti
+
+I test empirici su migliaia di configurazioni confermano le predizioni teoriche: A* offre il miglior bilanciamento trovando sempre soluzioni ottimali con esplorazione efficiente; BFS garantisce ottimalità ma con costo computazionale elevato per puzzle difficili; Greedy eccelle in velocità a scapito della qualità delle soluzioni.
+
+\end{document}
