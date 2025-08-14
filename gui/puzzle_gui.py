@@ -68,7 +68,15 @@ class PuzzleGUI:
         self.update_display()
         
     def _setup_ui(self):
-        """Costruisce l'interfaccia utente."""
+        """
+        Costruisce l'interfaccia utente completa.
+        
+        Crea tutti i componenti dell'interfaccia grafica:
+        - Frame dei controlli con algoritmi e configurazioni
+        - Canvas del puzzle 3x3 interattivo  
+        - Pannello delle statistiche in tempo reale
+        - Console di logging con output colorato
+        """
         # Stile
         style = ttk.Style()
         style.theme_use('clam')
@@ -227,7 +235,15 @@ class PuzzleGUI:
         self.log("Seleziona un algoritmo e clicca 'Risolvi'", "info")
     
     def _create_puzzle_board(self):
-        """Crea le tessere del puzzle sulla canvas."""
+        """
+        Crea le tessere del puzzle sulla canvas.
+        
+        Disegna una griglia 3x3 di tessere interattive:
+        - Ogni tessera è un rettangolo con testo numerico
+        - Le tessere sono cliccabili per le mosse manuali
+        - Lo spazio vuoto (0) viene visualizzato diversamente
+        - Memorizza gli ID degli oggetti canvas per aggiornamenti
+        """
         for i in range(9):
             row = i // 3
             col = i % 3
@@ -249,7 +265,14 @@ class PuzzleGUI:
             self.tiles[i] = {'rect': tile_id, 'text': text_id, 'pos': i}
     
     def _center_window(self, window, width, height):
-        """Centra una finestra sullo schermo."""
+        """
+        Centra una finestra sullo schermo.
+        
+        Args:
+            window: Finestra Tkinter da centrare
+            width (int): Larghezza desiderata della finestra  
+            height (int): Altezza desiderata della finestra
+        """
         window.update_idletasks()  # Assicura che le dimensioni siano aggiornate
         screen_width = window.winfo_screenwidth()
         screen_height = window.winfo_screenheight()
@@ -258,7 +281,14 @@ class PuzzleGUI:
         window.geometry(f"{width}x{height}+{x}+{y}")
     
     def update_display(self):
-        """Aggiorna la visualizzazione del puzzle."""
+        """
+        Aggiorna la visualizzazione del puzzle.
+        
+        Sincronizza lo stato interno con la rappresentazione grafica:
+        - Aggiorna i colori delle tessere
+        - Mostra/nasconde i numeri in base al valore
+        - Applica stili diversi per lo spazio vuoto
+        """
         for i in range(9):
             value = self.current_state[i]
             
@@ -275,7 +305,16 @@ class PuzzleGUI:
                                      text=str(value))
     
     def update_stats(self):
-        """Aggiorna le statistiche visualizzate."""
+        """
+        Aggiorna le statistiche visualizzate nel pannello destro.
+        
+        Formatta e mostra:
+        - Numero di mosse effettuate
+        - Tempo di esecuzione dell'algoritmo
+        - Nodi esplorati durante la ricerca
+        - Nodi in frontiera
+        - Utilizzo di memoria (con unità appropriate)
+        """
         self.stats_labels['moves'].config(text=str(self.stats['moves']))
         self.stats_labels['time'].config(text=f"{self.stats['time']:.3f}s")
         self.stats_labels['nodes_explored'].config(text=str(self.stats['nodes_explored']))
@@ -292,13 +331,24 @@ class PuzzleGUI:
         self.stats_labels['memory'].config(text=mem_str)
     
     def update_speed(self, value):
-        """Aggiorna la velocità di animazione."""
+        """
+        Aggiorna la velocità di animazione delle soluzioni.
+        
+        Args:
+            value: Nuovo valore di velocità in millisecondi per frame
+        """
         self.animation_speed = int(float(value))
         self.speed_label.config(text=f"{self.animation_speed} ms")
 
     
     def log(self, message, level="info"):
-        """Aggiunge un messaggio alla console."""
+        """
+        Aggiunge un messaggio alla console con timestamp e colore.
+        
+        Args:
+            message (str): Messaggio da visualizzare
+            level (str): Livello del messaggio ("info", "warning", "error", "success")
+        """
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted_message = f"[{timestamp}] {message}\n"
         
@@ -314,7 +364,15 @@ class PuzzleGUI:
             print(f"[LOG] {message}")
     
     def on_tile_click(self, event):
-        """Gestisce il click su una tessera."""
+        """
+        Gestisce il click su una tessera per il movimento manuale.
+        
+        Args:
+            event: Evento di click del mouse con coordinate
+            
+        Verifica se la tessera cliccata è adiacente allo spazio vuoto
+        e in caso positivo esegue lo scambio, aggiornando la visualizzazione.
+        """
         if self.is_solving:
             return
         
@@ -342,14 +400,29 @@ class PuzzleGUI:
                     messagebox.showinfo("Vittoria!", "Hai risolto il puzzle!")
     
     def is_adjacent(self, pos1, pos2):
-        """Verifica se due posizioni sono adiacenti."""
+        """
+        Verifica se due posizioni sono adiacenti nella griglia 3x3.
+        
+        Args:
+            pos1 (int): Prima posizione (0-8)
+            pos2 (int): Seconda posizione (0-8)
+            
+        Returns:
+            bool: True se le posizioni sono adiacenti (Manhattan distance = 1)
+        """
         row1, col1 = pos1 // 3, pos1 % 3
         row2, col2 = pos2 // 3, pos2 % 3
         
         return abs(row1 - row2) + abs(col1 - col2) == 1
     
     def shuffle_puzzle(self):
-        """Mescola il puzzle in modo casuale ma risolvibile."""
+        """
+        Mescola il puzzle in modo casuale ma garantendo la risolvibilità.
+        
+        Genera una nuova configurazione partendo dallo stato obiettivo
+        e applicando mosse casuali valide. La difficoltà viene scelta
+        casualmente tra easy, medium e hard.
+        """
         if self.is_solving:
             return
         
@@ -360,7 +433,14 @@ class PuzzleGUI:
         self.log(f"🎲 Nuovo puzzle generato (difficoltà: {difficulty})", "info")
     
     def set_goal_state(self):
-        """Imposta lo stato obiettivo."""
+        """
+        Imposta lo stato obiettivo standard del puzzle.
+        
+        Configura il puzzle nella disposizione finale:
+        1 2 3
+        4 5 6  
+        7 8 □
+        """
         if self.is_solving:
             return
         
@@ -370,7 +450,13 @@ class PuzzleGUI:
         self.log("🎯 Impostato stato obiettivo", "info")
     
     def enable_edit_mode(self):
-        """Abilita la modalità di modifica manuale del puzzle."""
+        """
+        Abilita la modalità di modifica manuale del puzzle.
+        
+        Apre una finestra di dialogo con una griglia 3x3 di campi di input
+        dove l'utente può inserire manualmente i numeri per configurare
+        il puzzle. Include validazione dell'input e controllo di risolvibilità.
+        """
         dialog = tk.Toplevel(self.master)
         dialog.title("✏️ Configurazione Manuale")
         dialog.resizable(False, False)
@@ -448,7 +534,14 @@ class PuzzleGUI:
         ttk.Label(tips_frame, text=tips_text, font=("Arial", 9)).pack()
     
     def solve_puzzle(self):
-        """Risolve il puzzle con l'algoritmo selezionato."""
+        """
+        Risolve il puzzle utilizzando l'algoritmo selezionato.
+        
+        Esegue la risoluzione in un thread separato per non bloccare l'UI.
+        Gestisce l'interfaccia utente durante la risoluzione (progress bar,
+        disabilitazione controlli) e al completamento chiede se animare
+        la soluzione trovata.
+        """
         if self.is_solving:
             self.log("⚠️ Risoluzione già in corso", "warning")
             return
@@ -509,7 +602,12 @@ class PuzzleGUI:
         thread.start()
         
     def _on_solution_found(self):
-        """Callback quando una soluzione è trovata."""
+        """
+        Callback eseguita quando una soluzione è stata trovata.
+        
+        Ferma la progress bar, logga i risultati e chiede all'utente
+        se desidera visualizzare l'animazione della soluzione.
+        """
         self.progress.stop()
         self.log(f"✅ Soluzione trovata! {len(self.solution_path)} mosse")
         
@@ -524,7 +622,15 @@ class PuzzleGUI:
             self.solve_button.config(state="normal")
     
     def _on_solution_not_found(self, message=None):
-        """Callback quando nessuna soluzione è trovata."""
+        """
+        Callback eseguita quando nessuna soluzione è stata trovata.
+        
+        Args:
+            message (str, optional): Messaggio di errore specifico
+            
+        Ferma la progress bar, riabilita i controlli e mostra
+        un avviso all'utente.
+        """
         self.progress.stop()
         self.is_solving = False
         self.solve_button.config(state="normal")
@@ -533,7 +639,18 @@ class PuzzleGUI:
                              "Non è stata trovata una soluzione per questa configurazione.")
     
     def animate_solution(self, path):
-        """Anima la soluzione passo per passo."""
+        """
+        Anima la soluzione passo per passo con evidenziazione delle mosse.
+        
+        Args:
+            path: Lista di stati che rappresentano la soluzione
+            
+        Mostra ogni mossa della soluzione con:
+        - Aggiornamento dello stato del puzzle
+        - Evidenziazione temporanea della tessera mossa
+        - Aggiornamento del contatore mosse
+        - Velocità controllabile dall'utente
+        """
         if not path or len(path) < 2:
             self.log("⚠️ Nessun percorso da animare", "warning")
             return
@@ -584,7 +701,14 @@ class PuzzleGUI:
         animate_step(0)
     
     def compare_algorithms(self):
-        """Confronta le prestazioni di tutti gli algoritmi."""
+        """
+        Confronta le prestazioni di tutti gli algoritmi disponibili.
+        
+        Apre una finestra con una tabella che mostra i risultati del
+        confronto sistematico tra A*, BFS e Greedy sullo stato corrente.
+        Include metriche di tempo, mosse, nodi esplorati e identifica
+        il migliore per ogni categoria.
+        """
         # Crea finestra di confronto
         compare_window = tk.Toplevel(self.master)
         compare_window.title("📊 Confronto Algoritmi")
@@ -715,7 +839,14 @@ class PuzzleGUI:
                   command=compare_window.destroy).pack(side="left", padx=5)
     
     def show_help(self):
-        """Mostra la finestra di aiuto."""
+        """
+        Mostra la finestra di aiuto con informazioni complete sull'applicazione.
+        
+        Crea una finestra con tab multiple contenenti:
+        - Come giocare: regole e controlli del puzzle
+        - Algoritmi: descrizione dettagliata degli algoritmi AI
+        - Statistiche: spiegazione delle metriche visualizzate
+        """
         help_window = tk.Toplevel(self.master)
         help_window.title("❓ Aiuto - 8-Puzzle Solver")
         help_window.resizable(False, False)

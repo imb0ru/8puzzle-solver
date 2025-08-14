@@ -20,10 +20,22 @@ from logic.puzzle_logic import PuzzleLogic
 
 
 class PuzzleTest:
-    """Classe per eseguire test sugli algoritmi dell'8-puzzle."""
+    """
+    Classe per eseguire test sistematici sugli algoritmi dell'8-puzzle.
+    
+    Gestisce l'esecuzione di test comparativi tra diversi algoritmi di ricerca,
+    la generazione di puzzle di varie difficoltà, la raccolta di statistiche
+    e l'esportazione dei risultati in formati multipli (CSV, JSON, Markdown).
+    """
     
     def __init__(self):
-        """Inizializza il test."""
+        """
+        Inizializza il sistema di test.
+        
+        Configura la logica del puzzle, prepara le strutture dati per
+        i risultati e imposta la cartella di destinazione per i file
+        di output.
+        """
         self.logic = PuzzleLogic(debug=False)
         self.results = []
         self.results_dir = os.path.join(
@@ -390,7 +402,21 @@ class PuzzleTest:
     
     def _create_markdown_report(self, df: pd.DataFrame, stats: Dict, 
                                filename: str, timestamp: str):
-        """Crea un report dettagliato in formato Markdown."""
+        """
+        Crea un report dettagliato in formato Markdown.
+        
+        Args:
+            df (pd.DataFrame): DataFrame con i risultati del test
+            stats (Dict): Statistiche aggregate per algoritmo
+            filename (str): Percorso del file Markdown da creare
+            timestamp (str): Timestamp dell'esecuzione del test
+            
+        Genera un report completo con:
+        - Sommario esecutivo con overview dei test
+        - Tabelle comparative delle prestazioni
+        - Analisi dettagliata per difficoltà
+        - Conclusioni con identificazione del migliore algoritmo
+        """
         with open(filename, 'w', encoding='utf-8') as f:
             f.write("# 🧩 8-Puzzle Test Report\n\n")
             f.write(f"**Data Esecuzione**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -467,7 +493,21 @@ class PuzzleTest:
 
 
 def main():
-    """Funzione principale per eseguire il test."""
+    """
+    Funzione principale per eseguire il test completo degli algoritmi.
+    
+    Configura e avvia il sistema di test con parametri da command line,
+    esegue il test completo su tutte le difficoltà, analizza i risultati
+    e genera tutti i file di output (CSV, JSON, Markdown).
+    
+    Returns:
+        Tuple[pd.DataFrame, Dict]: DataFrame dei risultati e statistiche aggregate,
+                                  oppure (None, None) in caso di errore
+    
+    Note:
+        Il test include un minimo di 10 puzzle per difficoltà per garantire
+        significatività statistica dei risultati.
+    """
     parser = argparse.ArgumentParser(
         description='🧩 Test completo per algoritmi dell\'8-Puzzle',
         formatter_class=argparse.RawDescriptionHelpFormatter,

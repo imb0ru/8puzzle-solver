@@ -32,7 +32,17 @@ class PuzzleLogic:
         atexit.register(self.cleanup)
         
     def _initialize_prolog(self):
-        """Inizializza l'interprete Prolog e carica la KB."""
+        """
+        Inizializza l'interprete Prolog e carica la knowledge base.
+        
+        Configura SWI-Prolog, carica i file solver.pl e heuristics.pl,
+        e sopprime i warning per un output pulito. Verifica l'esistenza
+        dei file necessari e gestisce errori di configurazione.
+        
+        Raises:
+            FileNotFoundError: Se i file Prolog non vengono trovati
+            Exception: Per errori di inizializzazione di SWI-Prolog
+        """
         try:
             if self.debug:
                 print("🔧 Inizializzazione Prolog...")
@@ -69,7 +79,13 @@ class PuzzleLogic:
             raise
     
     def cleanup(self):
-        """Pulisce le risorse e previene il warning di Prolog."""
+        """
+        Pulisce le risorse Prolog e previene warning di terminazione.
+        
+        Chiama la funzione di cleanup definita in Prolog per rimuovere
+        stati memorizzati e query pendenti, poi termina l'interprete
+        in modo pulito per evitare warning di sistema.
+        """
         if self.prolog:
             try:
                 # Chiama la funzione di cleanup definita in Prolog
@@ -85,7 +101,12 @@ class PuzzleLogic:
                 self.prolog = None
     
     def __del__(self):
-        """Destructor per pulire risorse."""
+        """
+        Destructor per pulire risorse.
+        
+        Non esegue operazioni dirette per evitare problemi durante
+        la garbage collection. Il cleanup è gestito dal sistema atexit.
+        """
         # Non fare nulla qui, lascia che atexit gestisca il cleanup
         pass
     
@@ -147,14 +168,21 @@ class PuzzleLogic:
     
     def _get_valid_moves(self, state: List[int], empty_pos: int) -> List[str]:
         """
-        Ottiene le mosse valide per lo spazio vuoto.
+        Ottiene le mosse valide per lo spazio vuoto nella griglia 3x3.
         
         Args:
-            state: Stato corrente
-            empty_pos: Posizione dello spazio vuoto
+            state: Stato corrente del puzzle
+            empty_pos (int): Posizione dello spazio vuoto (0-8)
             
         Returns:
-            Lista di mosse valide ("up", "down", "left", "right")
+            List[str]: Lista di direzioni valide ("up", "down", "left", "right")
+            
+        Note:
+            Le mosse sono limitate dai bordi della griglia:
+            - "up" non disponibile per riga 0
+            - "down" non disponibile per riga 2
+            - "left" non disponibile per colonna 0
+            - "right" non disponibile per colonna 2
         """
         moves = []
         row, col = empty_pos // 3, empty_pos % 3
@@ -172,14 +200,21 @@ class PuzzleLogic:
     
     def _apply_move(self, empty_pos: int, move: str) -> int:
         """
-        Calcola la nuova posizione dopo una mossa.
+        Calcola la nuova posizione dello spazio vuoto dopo una mossa.
         
         Args:
-            empty_pos: Posizione corrente dello spazio vuoto
-            move: Direzione della mossa
+            empty_pos (int): Posizione corrente dello spazio vuoto (0-8)
+            move (str): Direzione della mossa ("up", "down", "left", "right")
             
         Returns:
-            Nuova posizione
+            int: Nuova posizione dello spazio vuoto
+            
+        Note:
+            Le mosse sono relative allo spazio vuoto:
+            - "up": spazio vuoto si muove verso l'alto (riga-1)
+            - "down": spazio vuoto si muove verso il basso (riga+1)
+            - "left": spazio vuoto si muove a sinistra (col-1)
+            - "right": spazio vuoto si muove a destra (col+1)
         """
         row, col = empty_pos // 3, empty_pos % 3
         
@@ -277,13 +312,17 @@ class PuzzleLogic:
     
     def _state_to_prolog(self, state: List[int]) -> str:
         """
-        Converte uno stato Python in formato Prolog.
+        Converte uno stato Python in formato compatibile con Prolog.
         
         Args:
-            state: Lista di 9 interi
+            state (List[int]): Lista di 9 interi rappresentanti lo stato
             
         Returns:
-            Stringa nel formato Prolog [1,2,3,4,5,6,7,8,0]
+            str: Stringa nel formato Prolog [1,2,3,4,5,6,7,8,0]
+            
+        Note:
+            Rimuove gli spazi dalla rappresentazione per garantire
+            compatibilità con il parser Prolog.
         """
         return str(state).replace(' ', '')
     
@@ -292,10 +331,15 @@ class PuzzleLogic:
         Converte un percorso Prolog in lista Python.
         
         Args:
-            prolog_path: Path restituito da Prolog
+            prolog_path: Percorso restituito da Prolog (stringa o lista)
             
         Returns:
-            Lista di stati (ogni stato è una lista di 9 interi)
+            List[List[int]]: Lista di stati, ognuno rappresentato come lista di 9 interi
+            
+        Note:
+            Gestisce sia format stringa che lista nativa di Prolog.
+            Ogni stato nel percorso rappresenta una configurazione del puzzle
+            dalla situazione iniziale alla soluzione.
         """
         path = []
         
