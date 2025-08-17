@@ -76,9 +76,10 @@ La combinazione di queste euristiche garantisce:
 ├── app.py                # Entry point principale
 ├── requirements.txt      # Dipendenze Python
 ├── README.md             # Documentazione
+├── .gitignore            # Elenco dei file e cartelle da escludere dal versionamento
 │
-├── docs/                 # PyDoc, PLDoc e Documentazione progetto
-│
+├── docs/                 
+│   └──  8puzzle.pdf      # Documentazione progetto
 ├── gui/
 │   └── puzzle_gui.py     # Interfaccia grafica Tkinter
 │
@@ -92,7 +93,7 @@ La combinazione di queste euristiche garantisce:
 ├── test/
 │   └── test.py      # Suite di test
 │
-└── results/              # Output benchmark (generata automaticamente)
+└── results/              # Output di test
 ```
 
 ---
