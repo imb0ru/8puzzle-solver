@@ -1,0 +1,26 @@
+{
+  "astar": {
+    "success_rate": 99.97500000000001,
+    "avg_time": 0.019163326013979538,
+    "avg_moves": 9.391097774443612,
+    "avg_nodes": 63.662915728932234,
+    "total_tests": 4000,
+    "successful_tests": 3999
+  },
+  "bfs": {
+    "success_rate": 100.0,
+    "avg_time": 3.791951791346073,
+    "avg_moves": 9.37625,
+    "avg_nodes": 7089.05725,
+    "total_tests": 4000,
+    "successful_tests": 4000
+  },
+  "greedy": {
+    "success_rate": 100.0,
+    "avg_time": 0.0116475750207901,
+    "avg_moves": 25.25625,
+    "avg_nodes": 75.78075,
+    "total_tests": 4000,
+    "successful_tests": 4000
+  }
+}
