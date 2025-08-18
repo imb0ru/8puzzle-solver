@@ -100,16 +100,6 @@ class PuzzleLogic:
             finally:
                 self.prolog = None
     
-    def __del__(self):
-        """
-        Destructor per pulire risorse.
-        
-        Non esegue operazioni dirette per evitare problemi durante
-        la garbage collection. Il cleanup è gestito dal sistema atexit.
-        """
-        # Non fare nulla qui, lascia che atexit gestisca il cleanup
-        pass
-    
     def is_solvable(self, state: List[int]) -> bool:
         """
         Verifica se una configurazione è risolvibile.
