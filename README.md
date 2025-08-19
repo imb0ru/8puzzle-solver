@@ -1,5 +1,4 @@
-# 🧩 8-Puzzle AI Solver – Un viaggio nell'Intelligenza Artificiale
-
+# 🧩 8-Puzzle AI Solver
 Questo progetto è stato realizzato per il corso di **Ingegneria della Conoscenza**, tenuto dal **Prof. Nicola Fanizzi**, all'interno del **corso di laurea triennale in Informatica** presso l'**Università degli Studi di Bari Aldo Moro**.
 
 ---
@@ -20,7 +19,7 @@ L'obiettivo didattico è applicare i concetti fondamentali dell'**Ingegneria del
 
 ## 📚 Contenuti e metodi
 
-Il progetto affronta il problema dell'8-puzzle implementando e confrontando diversi algoritmi di ricerca classici dell'AI:
+Il progetto affronta il problema dell'8-puzzle implementando e confrontando diversi algoritmi di ricerca classici:
 
 ### 🔍 Algoritmi implementati
 
@@ -61,9 +60,7 @@ La combinazione di queste euristiche garantisce:
 - **SWI-Prolog 9.x** – Motore di inferenza e algoritmi di ricerca
 - **Python 3.11+** – Orchestrazione, GUI e analisi dati
 - **pyswip** – Bridge Python-Prolog bidirezionale
-- **Tkinter + CustomTkinter** – GUI moderna e responsive
-- **NumPy** – Operazioni matriciali ottimizzate
-- **Matplotlib + Plotly** – Visualizzazioni interattive
+- **Tkinter** – GUI moderna e responsive
 - **Pandas** – Analisi statistica dei risultati
 
 ---
