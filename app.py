@@ -94,7 +94,7 @@ class EightPuzzleApp:
             dependencies_ok = False
         
         # Verifica altre librerie
-        required_libs = ['numpy', 'pandas', 'matplotlib']
+        required_libs = ['pandas']
         for lib in required_libs:
             try:
                 __import__(lib)

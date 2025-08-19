@@ -46,7 +46,7 @@ La combinazione di queste euristiche garantisce:
 
 ### Rappresentazione dello stato
 - **Prolog**: Lista di 9 elementi `[1,2,3,4,0,6,7,5,8]` dove 0 rappresenta lo spazio vuoto
-- **Python**: Matrice 3x3 NumPy per operazioni vettorizzate
+- **Python**: Matrice 3x3 per operazioni vettorizzate
 - **Hash table** per stati visitati (controllo duplicati O(1))
 
 ### Ottimizzazioni implementate
