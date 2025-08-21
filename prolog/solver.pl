@@ -18,7 +18,9 @@
     generate_random_puzzle/2,
     is_solvable/1,
     cleanup_prolog/0,
-    optimal_cost/1
+    optimal_cost/1,
+    goal_state/1
+
 ]).
 
 :- use_module('heuristics.pl').
@@ -27,11 +29,6 @@
 % Predicato dinamico per memorizzare gli stati già visitati durante la ricerca.
 % @arg State Lista di 9 elementi rappresentante uno stato del puzzle
 :- dynamic stato_visitato/1.
-
-%! soluzione_memorizzata(?Solution:list) is nondet
-% Predicato dinamico per memorizzare soluzioni trovate.
-% @arg Solution Lista di stati che rappresenta un percorso soluzione
-:- dynamic soluzione_memorizzata/1.
 
 %! nodes_explored(?Count:int) is det
 % Contatore dei nodi esplorati durante la ricerca.
@@ -57,7 +54,6 @@
 % Deve essere chiamato alla fine di ogni sessione di risoluzione.
 cleanup_prolog :-
     retractall(stato_visitato(_)),
-    retractall(soluzione_memorizzata(_)),
     retractall(nodes_explored(_)),
     retractall(nodes_frontier(_)),
     retractall(optimal_cost(_)),

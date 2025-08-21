@@ -112,10 +112,10 @@ misplaced_tiles_acc([Tile|RestState], [GoalTile|RestGoal], Acc, Count) :-
     misplaced_tiles_acc(RestState, RestGoal, NewAcc, Count).
 
 %! goal_state(-State:list) is det
-% Definisce lo stato obiettivo 8-puzzle.
+% Importa lo stato obiettivo 8-puzzle.
 %
-% @arg State Lista rappresentante lo stato obiettivo [1,2,3,4,5,6,7,8,0]
-goal_state([1,2,3,4,5,6,7,8,0]).
+% 
+:- use_module('solver.pl', [goal_state/1]).
 
 % =========================================================
 % EURISTICA COMBINATA
