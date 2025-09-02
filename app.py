@@ -4,7 +4,7 @@
 Entry point dell'applicazione per il risolutore automatico dell'8-puzzle.
 Integra algoritmi di ricerca AI con interfaccia grafica interattiva.
 
-Autore: [Il tuo nome]
+Autore: Marco Ferrara
 Corso: Ingegneria della Conoscenza - Prof. Nicola Fanizzi
 Università degli Studi di Bari "Aldo Moro"
 """

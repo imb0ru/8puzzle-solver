@@ -42,7 +42,6 @@ class PuzzleTest:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
             'results'
         )
-        # Non creiamo più la cartella qui, sarà creata al momento dell'esecuzione
     
     def create_run_directory(self, timestamp: str) -> str:
         """
@@ -54,7 +53,6 @@ class PuzzleTest:
         Returns:
             Percorso completo della cartella creata
         """
-        # Crea prima la cartella principale results se non esiste
         try:
             os.makedirs(self.results_dir, exist_ok=True)
         except Exception as e:
@@ -62,14 +60,12 @@ class PuzzleTest:
             self.results_dir = os.getcwd()
             print(f"📁 Userò la cartella corrente: {self.results_dir}")
         
-        # Crea la cartella per questa esecuzione
         run_dir = os.path.join(self.results_dir, f"test_{timestamp}")
         
         try:
             os.makedirs(run_dir, exist_ok=True)
             print(f"📁 Cartella risultati per questa esecuzione: {run_dir}")
             
-            # Test di scrittura
             test_file = os.path.join(run_dir, '.test_write')
             with open(test_file, 'w') as f:
                 f.write('test')
@@ -96,7 +92,6 @@ class PuzzleTest:
         puzzles = []
         
         if difficulty == "mixed":
-            # Per mixed, genera 1/3 di ogni difficoltà
             easy_count = count // 3
             medium_count = count // 3
             hard_count = count - easy_count - medium_count
@@ -108,7 +103,6 @@ class PuzzleTest:
             for _ in range(hard_count):
                 puzzles.append(self.logic.generate_random_puzzle("hard"))
         else:
-            # Genera tutti della stessa difficoltà
             for _ in range(count):
                 puzzles.append(self.logic.generate_random_puzzle(difficulty))
         
@@ -143,7 +137,6 @@ class PuzzleTest:
         current_test = 0
         
         for puzzle_idx, puzzle in enumerate(puzzles):
-            # Calcola difficoltà del puzzle
             manhattan = self.logic.get_manhattan_distance(puzzle)
             
             for algo in algorithms:
@@ -217,14 +210,11 @@ class PuzzleTest:
         
         all_results = []
         
-        # Test per ogni difficoltà
         difficulties = ['easy', 'medium', 'hard', 'mixed']
         
         for difficulty in difficulties:
-            # Genera puzzle per questa difficoltà
             puzzles = self.generate_test_puzzles(n_puzzles, difficulty)
             
-            # Esegui test
             df_difficulty = self.run_single_test(
                 puzzles, 
                 difficulty.capitalize()
@@ -232,7 +222,6 @@ class PuzzleTest:
             
             all_results.append(df_difficulty)
         
-        # Combina tutti i risultati
         final_df = pd.concat(all_results, ignore_index=True)
         
         print("\n" + "=" * 60)
@@ -254,16 +243,13 @@ class PuzzleTest:
         print("\n📊 ANALISI RISULTATI")
         print("=" * 60)
         
-        # Statistiche globali
         print(f"\n📈 STATISTICHE GLOBALI:")
         print(f"  • Test totali: {len(df)}")
         print(f"  • Test riusciti: {df['success'].sum()} ({df['success'].mean()*100:.1f}%)")
         print(f"  • Puzzle unici testati: {df['puzzle_id'].nunique() * 4}") 
         
-        # Filtra solo i successi per le statistiche
         success_df = df[df['success'] == True].copy()
         
-        # Statistiche per algoritmo (globali)
         stats = {}
         
         print("\n📊 PRESTAZIONI PER ALGORITMO (tutte le difficoltà):")
@@ -312,7 +298,6 @@ class PuzzleTest:
                      f"{'N/A':>9} "
                      f"{'N/A':>11}")
         
-        # Statistiche per difficoltà
         print("\n📊 PRESTAZIONI PER DIFFICOLTÀ:")
         print("-" * 80)
         
@@ -327,7 +312,6 @@ class PuzzleTest:
                              f"Moves: {algo_diff['path_length'].mean():.1f}, "
                              f"Nodes: {algo_diff['nodes_explored'].mean():.0f}")
         
-        # Trova il migliore
         print("\n🏆 MIGLIORI PRESTAZIONI:")
         print("-" * 40)
         
@@ -342,7 +326,6 @@ class PuzzleTest:
                 print(f"⚡ Più veloce: {fastest[0]} ({fastest[1]['avg_time']:.3f}s)")
                 print(f"🎯 Più efficiente: {most_efficient[0]} ({most_efficient[1]['avg_nodes']:.0f} nodi)")
             
-            # Algoritmi ottimali
             optimal_algos = ['astar', 'bfs']
             print(f"✅ Algoritmi con garanzia di ottimalità: {', '.join(optimal_algos)}")
         
@@ -361,20 +344,16 @@ class PuzzleTest:
         try:
             print("\n💾 Esportazione risultati...")
             
-            # Usa la cartella specificata o quella di default
             export_dir = run_dir if run_dir is not None else self.results_dir
             
             base_filename = f"test_{timestamp}"
             
-            # 1. Esporta CSV con dati grezzi
             csv_file = os.path.join(export_dir, f"{base_filename}.csv")
             df.to_csv(csv_file, index=False, encoding='utf-8-sig')
             print(f"   ✅ CSV dati grezzi: {csv_file}")
             
-            # 2. Esporta statistiche aggregate in JSON
             json_file = os.path.join(export_dir, f"{base_filename}_stats.json")
             
-            # Converti infinity in stringa per JSON
             json_stats = {}
             for algo, algo_stats in stats.items():
                 json_stats[algo] = {}
@@ -390,7 +369,6 @@ class PuzzleTest:
                 json.dump(json_stats, f, indent=2, default=str)
             print(f"   ✅ JSON statistiche: {json_file}")
             
-            # 3. Crea report Markdown dettagliato
             md_file = os.path.join(export_dir, f"{base_filename}_report.md")
             self._create_markdown_report(df, stats, md_file, timestamp)
             print(f"   ✅ Report Markdown: {md_file}")
@@ -422,7 +400,6 @@ class PuzzleTest:
             f.write(f"**Data Esecuzione**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"**ID Report**: {timestamp}\n\n")
             
-            # Sommario
             f.write("## 📊 Sommario Esecutivo\n\n")
             f.write(f"- **Puzzle testati per difficoltà**: {df['puzzle_id'].nunique()}\n")
             f.write(f"- **Difficoltà testate**: {', '.join(df['difficulty_category'].unique())}\n")
@@ -431,7 +408,6 @@ class PuzzleTest:
             f.write(f"- **Test completati con successo**: {df['success'].sum()} ")
             f.write(f"({df['success'].mean()*100:.1f}%)\n\n")
             
-            # Risultati per algoritmo
             f.write("## 🏆 Risultati Globali per Algoritmo\n\n")
             f.write("| Algoritmo | Success Rate | Tempo Medio | Mosse Medie | Nodi Esplorati |\n")
             f.write("|-----------|-------------|-------------|-------------|----------------|\n")
@@ -445,7 +421,6 @@ class PuzzleTest:
                 f.write(f"| **{algo}** | {stat['success_rate']:.1f}% | ")
                 f.write(f"{avg_time} | {avg_moves} | {avg_nodes} |\n")
             
-            # Analisi per difficoltà
             f.write("\n## 📈 Analisi per Difficoltà\n\n")
             
             success_df = df[df['success'] == True]
@@ -473,7 +448,6 @@ class PuzzleTest:
                 
                 f.write("\n")
             
-            # Conclusioni
             f.write("## 🎯 Conclusioni\n\n")
             
             valid_stats = {k: v for k, v in stats.items() if v['avg_time'] != float('inf')}
@@ -535,7 +509,6 @@ Tutti i risultati vengono automaticamente:
     
     args = parser.parse_args()
     
-    # Applica il minimo di 10 puzzle
     n_puzzles = max(10, args.puzzles)
     
     if args.puzzles < 10:
@@ -553,25 +526,18 @@ Tutti i risultati vengono automaticamente:
     print("=" * 60)
     
     try:
-        # Crea istanza del test
         test = PuzzleTest()
         
-        # Timestamp per questa esecuzione
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Crea cartella specifica per questa esecuzione
         run_dir = test.create_run_directory(timestamp)
         
-        # Esegui test completo
         results_df = test.run_complete_test(n_puzzles)
         
-        # Analizza risultati
         stats = test.analyze_results(results_df)
         
-        # Esporta sempre tutti i risultati
         test.export_results(results_df, stats, timestamp, run_dir)
         
-        # Riepilogo finale
         print("\n" + "=" * 60)
         print("✅ TEST COMPLETATO CON SUCCESSO!")
         print("=" * 60)
@@ -594,7 +560,6 @@ Tutti i risultati vengono automaticamente:
             else:
                 print(f"   ✗ {filename} (non trovato)")
         
-        # Mostra il best performer
         print("\n🏆 RISULTATO FINALE:")
         print("-" * 40)
         
@@ -627,5 +592,4 @@ Tutti i risultati vengono automaticamente:
 
 
 if __name__ == "__main__":
-    # Esegui il test
     df, stats = main()

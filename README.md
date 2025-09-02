@@ -49,10 +49,6 @@ La combinazione di queste euristiche garantisce:
 - **Python**: Matrice 3x3 per operazioni vettorizzate
 - **Hash table** per stati visitati (controllo duplicati O(1))
 
-### Ottimizzazioni implementate
-- **Pruning**: Eliminazione mosse che annullano la precedente
-- **Memoization**: Cache delle euristiche calcolate
-
 ---
 
 ## 📦 Tecnologie utilizzate
